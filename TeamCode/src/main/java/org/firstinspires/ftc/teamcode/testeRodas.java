@@ -2,12 +2,8 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-//import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.Servo;
 
 @Disabled
 @TeleOp(name="TESTE RODAS")
@@ -21,14 +17,8 @@ public class testeRodas extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        telemetry.addData("Status: ", "Iniciando...");
-        telemetry.update();
-
         //Iniciar o hardware
         initconfigH();
-
-        telemetry.addData("Status: ", "INICIADO, #GOMEGA");
-        telemetry.update();
 
         //Espera até começar
         waitForStart();
