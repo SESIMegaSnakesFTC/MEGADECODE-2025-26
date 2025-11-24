@@ -30,6 +30,7 @@ public class teleopVermelho extends LinearOpMode
     // CONSTANTES DE CONTROLE
     public double velocidade = 1.0;
     public boolean rtPressionadoUltimoEstado = false;
+    public boolean ltPressionadoUltimoEstado = false;
 
 
     @Override
@@ -119,12 +120,15 @@ public class teleopVermelho extends LinearOpMode
     }
 
     private void driveMecanum() {
-        // (o valor é invertido porque empurrar o analógico para frente gera valor negativo)
-        double ft = -gamepad1.left_stick_y; // frente/trás
-        double lateral = gamepad1.left_stick_x; // movimento lateral
-        double giro = gamepad1.right_stick_x; // rotação
-        boolean rtPressionado = gamepad1.right_trigger > 0.8;
+        double ft = -gamepad1.left_stick_y; // MOVIMENTO FRETE E TRÁS
+        double lateral = gamepad1.left_stick_x; // MOVIMENTO LATERAL
+        double giro = gamepad1.right_stick_x; // MOVIMENTO DE GIRO
 
+        // Controles RT e LT para velocidade 
+        boolean rtPressionado = gamepad1.right_trigger > 0.8;
+        boolean ltPressionado = gamepad1.left_trigger > 0.8;
+
+        // RT - Diminui a velocidade
         if (rtPressionado && !rtPressionadoUltimoEstado) {
             if (velocidade == 1.0) {
                 velocidade = 0.5;
@@ -135,8 +139,24 @@ public class teleopVermelho extends LinearOpMode
             } else {
                 velocidade = 1.0;
             }
+            // Para no 0.125, se pressionar mais uma vez, nada acontece
         }
         rtPressionadoUltimoEstado = rtPressionado;
+
+        // LT - Aumenta a velocidade
+        if (ltPressionado && !ltPressionadoUltimoEstado) {
+            if (velocidade == 1.0) {
+                velocidade = 0.5;
+            } else if (velocidade == 0.5) {
+                velocidade = 0.25;
+            } else if (velocidade == 0.25) {
+                velocidade = 0.125;
+            } else {
+                velocidade = 1.0;
+            }
+            // Para no 1.0, se pressionar mais uma vez, nada acontece
+        }
+        ltPressionadoUltimoEstado = ltPressionado;
 
         double frontLeftPower  = (ft + lateral + giro) * velocidade;
         double frontRightPower = (ft - lateral - giro) * velocidade;
