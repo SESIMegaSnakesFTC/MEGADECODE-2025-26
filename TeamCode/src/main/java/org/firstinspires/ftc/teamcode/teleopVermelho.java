@@ -19,7 +19,7 @@ public class teleopVermelho extends LinearOpMode
     private DcMotorEx rightBack = null;
 
     // DEFININDO MOTORES MECANISMO
-    //private DcMotor feeder = null;
+    private DcMotor feeder = null;
     //private DcMotor shooter = null;
     //private DcMotor viper = null;
 
@@ -29,8 +29,8 @@ public class teleopVermelho extends LinearOpMode
 
     // CONSTANTES DE CONTROLE
     public double velocidade = 1.0;
-    public boolean rtPressionadoUltimoEstado = false;
-    public boolean ltPressionadoUltimoEstado = false;
+    public boolean rbPressionadoUltimoEstado = false;
+    public boolean lbPressionadoUltimoEstado = false;
 
 
     @Override
@@ -51,23 +51,30 @@ public class teleopVermelho extends LinearOpMode
 
         while (opModeIsActive())
         {
-            // Código de controle das mecanum
             driveMecanum();
 
-            /*
+            String statusFeeder = "FEEDER: Desligado";
+
             if (gamepad2.right_bumper)
             {
-                feeder.setPower(0.8); //Ativa a rotação total do feeder
+                feeder.setPower(0.8);
+                statusFeeder = "FEEDER: Coletando";
             }
             else if (gamepad2.left_bumper)
             {
-                feeder.setPower(-0.8); //Ativa a rotação contrária do feeder
+                feeder.setPower(-0.8);
+                statusFeeder = "FEEDER: Retirando";
             }
             else
             {
-                feeder.setPower(0.0); //Desliga a rotação do feeder
+                feeder.setPower(0.0);
             }
-             */
+
+            // TELEMETRIA (AGORA EM ORDEM FIXA)
+            telemetry.addLine(statusFeeder);
+            telemetry.addData("Velocidade movimento atual", "%.3f", velocidade);
+
+            telemetry.update();
         }
     }
 
@@ -80,7 +87,7 @@ public class teleopVermelho extends LinearOpMode
         rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
 
         // INICIANDO MOTORES E SERVOS MECANINSMOS
-        //feeder = hardwareMap.get(DcMotor.class, "feeder");
+        feeder = hardwareMap.get(DcMotor.class, "feeder");
         //shooter = hardwareMap.get(DcMotor.class, "shooter");
         //viper = hardwareMap.get(DcMotor.class, "viper1");
         //regulShooter = hardwareMap.get(Servo.class, "regulShooter");
@@ -93,7 +100,7 @@ public class teleopVermelho extends LinearOpMode
         rightBack.setDirection(DcMotorEx.Direction.REVERSE);
 
         // DIREÇÃO MOTORES MECANISMOS
-        //feeder.setDirection(DcMotor.Direction.REVERSE);
+        feeder.setDirection(DcMotor.Direction.REVERSE);
         //shooter.setDirection(DcMotor.Direction.REVERSE);
         //viper.setDirection(DcMotor.Direction.REVERSE);
 
@@ -107,7 +114,7 @@ public class teleopVermelho extends LinearOpMode
 
         // FEEDER E SHOOTER
         //shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        //feeder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        feeder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         // ENCODER MOTORES
         leftFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
@@ -115,7 +122,7 @@ public class teleopVermelho extends LinearOpMode
         rightFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         rightBack.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         //viper.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        //feeder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        feeder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         //shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
 
@@ -124,39 +131,35 @@ public class teleopVermelho extends LinearOpMode
         double lateral = gamepad1.left_stick_x; // MOVIMENTO LATERAL
         double giro = gamepad1.right_stick_x; // MOVIMENTO DE GIRO
 
-        // Controles RT e LT para velocidade 
-        boolean rtPressionado = gamepad1.right_trigger > 0.8;
-        boolean ltPressionado = gamepad1.left_trigger > 0.8;
+        // Controles RB e LB para velocidade
+        boolean rbPressionado = gamepad1.right_bumper;
+        boolean lbPressionado = gamepad1.left_bumper;
 
-        // RT - Diminui a velocidade
-        if (rtPressionado && !rtPressionadoUltimoEstado) {
-            if (velocidade == 1.0) {
-                velocidade = 0.5;
-            } else if (velocidade == 0.5) {
-                velocidade = 0.25;
-            } else if (velocidade == 0.25) {
-                velocidade = 0.125;
-            } else {
-                velocidade = 1.0;
-            }
-            // Para no 0.125, se pressionar mais uma vez, nada acontece
-        }
-        rtPressionadoUltimoEstado = rtPressionado;
+        // RB - Diminui a velocidade
+        if (rbPressionado && !rbPressionadoUltimoEstado){
+            if (velocidade > 0.125) {
+                velocidade = velocidade / 2;
 
-        // LT - Aumenta a velocidade
-        if (ltPressionado && !ltPressionadoUltimoEstado) {
-            if (velocidade == 1.0) {
-                velocidade = 0.5;
-            } else if (velocidade == 0.5) {
-                velocidade = 0.25;
-            } else if (velocidade == 0.25) {
-                velocidade = 0.125;
-            } else {
-                velocidade = 1.0;
+                // Garantir que não passe de 0.125
+                if (velocidade < 0.125) {
+                    velocidade = 0.125;
+                }
             }
-            // Para no 1.0, se pressionar mais uma vez, nada acontece
         }
-        ltPressionadoUltimoEstado = ltPressionado;
+        rbPressionadoUltimoEstado = rbPressionado;
+
+        // LB - Aumenta a velocidade
+        if (lbPressionado && !lbPressionadoUltimoEstado) {
+            if (velocidade < 1.0){
+                velocidade = velocidade * 2;
+
+                // Garantir que não passe de 1
+                if (velocidade > 1.0){
+                    velocidade = 1.0;
+                }
+            }
+        }
+        lbPressionadoUltimoEstado = lbPressionado;
 
         double frontLeftPower  = (ft + lateral + giro) * velocidade;
         double frontRightPower = (ft - lateral - giro) * velocidade;
@@ -179,9 +182,6 @@ public class teleopVermelho extends LinearOpMode
         leftBack.setPower(backLeftPower);
         rightFront.setPower(frontRightPower);
         rightBack.setPower(backRightPower);
-
-        telemetry.addData("Velocidade atual", "%.3f", velocidade);
-        telemetry.update();
     }
 }
 
