@@ -8,24 +8,24 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
 
-@TeleOp(name = "LimelightTurret_PD_AutoManual")
+@TeleOp(name = "limelightv3")
 public class limelightPIDv3 extends OpMode {
 
     private Limelight3A limelight;
     private DcMotor motorTurret;
 
     // PARÂMETROS DO PD
-    private double kP = 0.04;
-    private double kD = 0.04;
+    private double kP = 0.08;
+    private double kD = 0.00;
 
     // LIMITES E AJUSTES
-    private double MAX_POWER = 0.25;
+    private double MAX_POWER = 0.4;
     private double MIN_POWER = 0.05;
-    private double DEADBAND_DEG = 0.5;
-    private double SMOOTH_ALPHA = 0.6;  // suavização
-    private double SEARCH_POWER = 0.1; // velocidade de varredura
+    private double DEADBAND_DEG = 0.2;
+    private double SMOOTH_ALPHA = 0.1;  // suavização
+    private double SEARCH_POWER = 0.1;
 
-    // === VARIÁVEIS INTERNAS ===
+    // VARIÁVEIS INTERNAS
     private double smoothedPower = 0.0;
     private double lastErrorX = 0.0;
     private long lastTimeMs = 0;
@@ -33,9 +33,13 @@ public class limelightPIDv3 extends OpMode {
     private boolean tagVisible = false;
     private boolean searchingRight = true;
 
-    // === MODO DE OPERAÇÃO ===
+    // MODO DE OPERAÇÃO
     private boolean modoAutomatico = false;
     private boolean lastTriggerPressed = false;
+
+    // DISTÂNCIA
+    private double distance;
+
 
     @Override
     public void init() {
@@ -59,6 +63,7 @@ public class limelightPIDv3 extends OpMode {
 
     @Override
     public void loop() {
+
         boolean triggerPressed = gamepad1.right_trigger > 0.6;
 
         // alterna entre manual e automático com o gatilho direito
@@ -79,7 +84,7 @@ public class limelightPIDv3 extends OpMode {
         telemetry.update();
     }
 
-    // MODO AUTOMÁTICO COM PD
+
     private void EXmodoAutomatico() {
         LLResult result = limelight.getLatestResult();
         double erroX = 0.0;
@@ -144,6 +149,7 @@ public class limelightPIDv3 extends OpMode {
         telemetry.addData("Busca", searchingRight ? "→ Direita" : "← Esquerda");
         telemetry.addData("kP", kP);
         telemetry.addData("kD", kD);
+
 
         lastErrorX = erroX;
     }
