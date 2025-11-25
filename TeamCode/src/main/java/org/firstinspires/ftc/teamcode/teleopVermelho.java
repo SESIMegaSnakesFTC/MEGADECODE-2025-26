@@ -179,6 +179,9 @@ public class teleopVermelho extends LinearOpMode
         leftBack.setPower(backLeftPower);
         rightFront.setPower(frontRightPower);
         rightBack.setPower(backRightPower);
+
+        telemetry.addData("Velocidade atual", "%.3f", velocidade);
+        telemetry.update();
     }
 }
 
