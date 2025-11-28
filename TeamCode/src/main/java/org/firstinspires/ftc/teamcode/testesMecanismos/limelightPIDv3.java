@@ -14,16 +14,17 @@ public class limelightPIDv3 extends OpMode {
     private Limelight3A limelight;
     private DcMotor motorTurret;
 
-    // PARÂMETROS DO PD
+    // PARÂMETROS PD
     private double kP = 0.08;
-    private double kD = 0.00;
+    private double kD = 0.00; // começar com 0.0; aumente com cuidado
 
     // LIMITES E AJUSTES
     private double MAX_POWER = 0.4;
-    private double MIN_POWER = 0.05;
-    private double DEADBAND_DEG = 0.2;
-    private double SMOOTH_ALPHA = 0.1;  // suavização
-    private double SEARCH_POWER = 0.1;
+    private double MIN_POWER = 0.05;   // potência mínima para vencer atrito
+    private double DEADBAND_DEG = 0.2; // zona morta em graus
+    private double SMOOTH_ALPHA = 0.25; // suavização exponencial (0..1) — maior = mais responsivo
+    private double SEARCH_POWER = 0.12; // potência de busca
+    private long SEARCH_SWEEP_MS = 1500; // tempo entre inversões de sweep quando sem alvo
 
     // VARIÁVEIS INTERNAS
     private double smoothedPower = 0.0;
@@ -36,10 +37,6 @@ public class limelightPIDv3 extends OpMode {
     // MODO DE OPERAÇÃO
     private boolean modoAutomatico = false;
     private boolean lastTriggerPressed = false;
-
-    // DISTÂNCIA
-    private double distance;
-
 
     @Override
     public void init() {
@@ -54,11 +51,13 @@ public class limelightPIDv3 extends OpMode {
         limelight.setPollRateHz(100);
 
         telemetry.addLine("Sistema Limelight PD pronto.");
+        telemetry.update();
     }
 
     @Override
     public void start() {
         lastTimeMs = System.currentTimeMillis();
+        lastSearchSwitch = lastTimeMs;
     }
 
     @Override
@@ -66,14 +65,14 @@ public class limelightPIDv3 extends OpMode {
 
         boolean triggerPressed = gamepad1.right_trigger > 0.6;
 
-        // alterna entre manual e automático com o gatilho direito
+        // Alterna entre manual e automático com o gatilho direito (na transição)
         if (triggerPressed && !lastTriggerPressed) {
             modoAutomatico = !modoAutomatico;
         }
         lastTriggerPressed = triggerPressed;
 
         if (modoAutomatico) {
-            EXmodoAutomatico();
+            modoAutomaticoLoop();
         } else {
             executarModoManual();
         }
@@ -84,13 +83,12 @@ public class limelightPIDv3 extends OpMode {
         telemetry.update();
     }
 
-
-    private void EXmodoAutomatico() {
+    private void modoAutomaticoLoop() {
         LLResult result = limelight.getLatestResult();
         double erroX = 0.0;
         boolean currentTagVisible = false;
 
-        // --- Lê dados da Limelight ---
+        // Lê dados da Limelight
         if (result != null && result.isValid() && !result.getFiducialResults().isEmpty()) {
             LLResultTypes.FiducialResult fr = result.getFiducialResults().get(0);
             erroX = fr.getTargetXDegrees();
@@ -98,58 +96,67 @@ public class limelightPIDv3 extends OpMode {
         }
 
         long now = System.currentTimeMillis();
-        double dt = Math.max((now - lastTimeMs) / 1000.0, 1e-3);
+        double dt = (now - lastTimeMs) / 1000.0;
+        if (dt <= 0.0) dt = 1e-3; // proteção contra dt zero
         lastTimeMs = now;
 
-        double commandedPower;
+        double commandedPower = 0.0;
 
         if (currentTagVisible) {
+            // Temos alvo visível -> controle PD
             tagVisible = true;
 
-            // Se o erro estiver dentro da zona morta, não corrige
             if (Math.abs(erroX) <= DEADBAND_DEG) {
                 commandedPower = 0.0;
             } else {
-                // Controle PD
                 double pTerm = erroX * kP;
-                double dTerm = ((erroX - lastErrorX) / dt) * kD;
+                double dTerm = ((erroX - lastErrorX) / dt) * kD; // derivada
                 commandedPower = pTerm + dTerm;
 
-                commandedPower = Range.clip(commandedPower, (-MAX_POWER + -MIN_POWER)/2, (MAX_POWER + MIN_POWER)/2);
+                // Clip para limites máximos
+                commandedPower = Range.clip(commandedPower, -MAX_POWER, MAX_POWER);
 
-                // Potência mínima para vencer atrito
-                if (commandedPower != 0.0 && Math.abs(commandedPower) < MIN_POWER) {
+                // Garantir potência mínima para vencer atrito (se não zero)
+                if (Math.abs(commandedPower) > 0.0 && Math.abs(commandedPower) < MIN_POWER) {
                     commandedPower = Math.signum(commandedPower) * MIN_POWER;
                 }
             }
-
         } else {
-            // --- TAG PERDIDA: busca inteligente ---
+            // Alvo perdido -> estratégia de busca inteligente
             if (tagVisible) {
-                // Decide o sentido da busca baseado no último erro
-                searchingRight = lastErrorX > 0;
+                // tivemos o alvo antes, então iniciamos busca mantendo sentido que tínhamos
+                // se lastErrorX ≈ 0, mantemos searchingRight como estava; caso contrário, baseamos no sinal do lastErrorX
+                if (Math.abs(lastErrorX) > 0.5) {
+                    searchingRight = lastErrorX > 0.0;
+                }
                 tagVisible = false;
+                lastSearchSwitch = now; // reinicia timer de sweep
             }
 
-            // Mantém a busca até encontrar novamente
+            // A cada SEARCH_SWEEP_MS invertemos o sentido para varrer a área
+            if (now - lastSearchSwitch >= SEARCH_SWEEP_MS) {
+                searchingRight = !searchingRight;
+                lastSearchSwitch = now;
+            }
+
             commandedPower = searchingRight ? SEARCH_POWER : -SEARCH_POWER;
         }
 
-        // Suavização de potência
+        // Suavização exponencial
         smoothedPower = SMOOTH_ALPHA * commandedPower + (1.0 - SMOOTH_ALPHA) * smoothedPower;
 
-        // Aplica no motor
+        // Aplicar potência ao motor
         motorTurret.setPower(smoothedPower);
 
-        // --- Telemetria ---
+        // Telemetria
         telemetry.addLine("=== MODO AUTOMÁTICO ===");
         telemetry.addData("Erro X (°)", "%.2f", erroX);
-        telemetry.addData("Potência", "%.3f", smoothedPower);
+        telemetry.addData("Potência (comando)", "%.3f", commandedPower);
+        telemetry.addData("Potência (suavizada)", "%.3f", smoothedPower);
         telemetry.addData("Tag visível", currentTagVisible);
-        telemetry.addData("Busca", searchingRight ? "→ Direita" : "← Esquerda");
+        telemetry.addData("Busca sentido", searchingRight ? "→ Direita" : "← Esquerda");
         telemetry.addData("kP", kP);
         telemetry.addData("kD", kD);
-
 
         lastErrorX = erroX;
     }
@@ -157,7 +164,7 @@ public class limelightPIDv3 extends OpMode {
     // MODO MANUAL
     private void executarModoManual() {
         double input = gamepad1.right_stick_x;
-        double motorPower = Range.clip(input, -0.4, 0.4);
+        double motorPower = Range.clip(input, -MAX_POWER, MAX_POWER);
 
         motorTurret.setPower(motorPower);
 
