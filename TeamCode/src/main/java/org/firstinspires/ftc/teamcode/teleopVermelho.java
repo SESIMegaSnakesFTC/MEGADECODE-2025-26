@@ -1,188 +1,217 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-//import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@TeleOp(name="Teleoperado Vermelho")
-public class teleopVermelho extends LinearOpMode
-{
+// IMPORTS DO PEDRO PATHING
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.PathChain;
+import com.pedropathing.geometry.BezierLine;
 
-    // DEFININDO MOTORES DE MOVIMENTO
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
+@TeleOp(name="Teleoperado Vermelho")
+public class teleopVermelho extends LinearOpMode {
+
+    // --- MOTORES CHASSI ---
     private DcMotorEx leftFront = null;
     private DcMotorEx leftBack = null;
     private DcMotorEx rightFront = null;
     private DcMotorEx rightBack = null;
 
-    // DEFININDO MOTORES MECANISMO
+    // --- MOTORES MECANISMOS ---
     private DcMotor feeder = null;
-    //private DcMotor shooter = null;
-    //private DcMotor viper = null;
 
-    // DEFININDO SERVOS
-    //private Servo regulShooter = null;
-    //private Servo baseShooter = null;
-
-    // CONSTANTES DE CONTROLE
+    // --- CONTROLES ---
     public double velocidade = 1.0;
     public boolean rbPressionadoUltimoEstado = false;
     public boolean lbPressionadoUltimoEstado = false;
 
+    // --- PEDRO PATHING ---
+    private Follower follower;
+
+    // Variáveis fixas de posição
+    private final double shootX = 96;
+    private final double shootY = 95;
+    private final double goalX = 126;
+    private final double goalY = 131;
+
+    // Variável do cálculo
+    double DistanciaPosShootPosGoal = 0;
 
     @Override
-    public void runOpMode()
-    {
+    public void runOpMode() {
+
         telemetry.addData("Status: ", "Iniciando...");
         telemetry.update();
 
-        //Iniciar o hardware
         initconfigH();
+
+        // --- INICIALIZAÇÃO DO SEGUIDOR PEDRO PATHING ---
+        follower = Constants.createFollower(hardwareMap);
 
         telemetry.addData("Status: ", "INICIADO, #GOMEGA");
         telemetry.update();
 
-        //Espera até começar
         waitForStart();
         resetRuntime();
 
-        while (opModeIsActive())
-        {
+        while (opModeIsActive()) {
+
             driveMecanum();
+            feederControl();
 
-            String statusFeeder = "FEEDER: Desligado";
+            // *********************************************
+            // Quando o botão X é pressionado no gamepad1:
+            // *********************************************
+            if (gamepad1.x) {
 
-            if (gamepad2.right_bumper)
-            {
-                feeder.setPower(0.8);
-                statusFeeder = "FEEDER: Coletando";
-            }
-            else if (gamepad2.left_bumper)
-            {
-                feeder.setPower(-0.8);
-                statusFeeder = "FEEDER: Retirando";
-            }
-            else
-            {
-                feeder.setPower(0.0);
+                // --- POSE ATUAL DO ROBÔ ---
+                Pose poseAtual = follower.getPose();
+
+                // --- CRIAÇÃO DO CAMINHO PARA A POSIÇÃO DE SHOOT ---
+                PathChain caminho = follower.pathBuilder()
+                        .addPath(new BezierLine(
+                                new com.pedropathing.geometry.Pose(
+                                        poseAtual.getX(),
+                                        poseAtual.getY(),
+                                        poseAtual.getHeading()
+                                ),
+                                new com.pedropathing.geometry.Pose(
+                                        shootX,
+                                        shootY,
+                                        poseAtual.getHeading()
+                                )
+                        ))
+                        .setLinearHeadingInterpolation(
+                                poseAtual.getHeading(),
+                                poseAtual.getHeading()
+                        )
+                        .build();
+
+                // --- EXECUTA CAMINHO ---
+                follower.followPath(caminho, false);
+
+                // --- TRIGONOMETRIA PARA CALCULAR A DISTÂNCIA ENTRE SHOOT E GOAL ---
+                double catetoX = goalX - shootX;
+                double catetoY = goalY - shootY;
+
+                DistanciaPosShootPosGoal = Math.sqrt(catetoX * catetoX + catetoY * catetoY);
             }
 
-            // TELEMETRIA (AGORA EM ORDEM FIXA)
-            telemetry.addLine(statusFeeder);
+            // Atualiza o seguidor SEM parar o teleop
+            follower.update();
+
+            // TELEMETRIA
             telemetry.addData("Velocidade movimento atual", "%.3f", velocidade);
-
+            telemetry.addData("Distância Shoot → Goal", DistanciaPosShootPosGoal);
             telemetry.update();
         }
     }
 
-    private void initconfigH()
-    {
-        // INICIANDO MOTORES DE MOVIMENTO
+    // =========================================
+    // =========== CONFIGS HARDWARE ============
+    // =========================================
+    private void initconfigH() {
+
         leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
         leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
         rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
         rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
 
-        // INICIANDO MOTORES E SERVOS MECANINSMOS
         feeder = hardwareMap.get(DcMotor.class, "feeder");
-        //shooter = hardwareMap.get(DcMotor.class, "shooter");
-        //viper = hardwareMap.get(DcMotor.class, "viper1");
-        //regulShooter = hardwareMap.get(Servo.class, "regulShooter");
-        //baseShooter = hardwareMap.get(Servo.class, "baseShooter");
 
-        // DIREÇÃO MOTORES MOVIMENTO
         leftFront.setDirection(DcMotorEx.Direction.FORWARD);
         leftBack.setDirection(DcMotorEx.Direction.FORWARD);
         rightFront.setDirection(DcMotorEx.Direction.FORWARD);
         rightBack.setDirection(DcMotorEx.Direction.REVERSE);
 
-        // DIREÇÃO MOTORES MECANISMOS
         feeder.setDirection(DcMotor.Direction.REVERSE);
-        //shooter.setDirection(DcMotor.Direction.REVERSE);
-        //viper.setDirection(DcMotor.Direction.REVERSE);
 
-        // COMPORTAMENTO DOS MOTORES
-        // CHASSI E VIPER FREIO DE MÃO
         leftFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         leftBack.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         rightFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         rightBack.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        //viper.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        // FEEDER E SHOOTER
-        //shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         feeder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        // ENCODER MOTORES
         leftFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         leftBack.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         rightFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         rightBack.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-        //viper.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         feeder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        //shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
 
+    // =========================================
+    // =========== MOVIMENTAÇÃO =================
+    // =========================================
     private void driveMecanum() {
-        double ft = -gamepad1.left_stick_y; // MOVIMENTO FRETE E TRÁS
-        double lateral = gamepad1.left_stick_x; // MOVIMENTO LATERAL
-        double giro = gamepad1.right_stick_x; // MOVIMENTO DE GIRO
 
-        // Controles RB e LB para velocidade
+        double ft = -gamepad1.left_stick_y;
+        double lateral = gamepad1.left_stick_x;
+        double giro = gamepad1.right_stick_x;
+
         boolean rbPressionado = gamepad1.right_bumper;
         boolean lbPressionado = gamepad1.left_bumper;
 
-        // RB - Diminui a velocidade
-        if (rbPressionado && !rbPressionadoUltimoEstado){
+        if (rbPressionado && !rbPressionadoUltimoEstado) {
             if (velocidade > 0.125) {
-                velocidade = velocidade / 2;
-
-                // Garantir que não passe de 0.125
-                if (velocidade < 0.125) {
-                    velocidade = 0.125;
-                }
+                velocidade /= 2.0;
+                if (velocidade < 0.125) velocidade = 0.125;
             }
         }
         rbPressionadoUltimoEstado = rbPressionado;
 
-        // LB - Aumenta a velocidade
         if (lbPressionado && !lbPressionadoUltimoEstado) {
-            if (velocidade < 1.0){
-                velocidade = velocidade * 2;
-
-                // Garantir que não passe de 1
-                if (velocidade > 1.0){
-                    velocidade = 1.0;
-                }
+            if (velocidade < 1.0) {
+                velocidade *= 2;
+                if (velocidade > 1.0) velocidade = 1.0;
             }
         }
         lbPressionadoUltimoEstado = lbPressionado;
 
-        double frontLeftPower  = (ft + lateral + giro) * velocidade;
-        double frontRightPower = (ft - lateral - giro) * velocidade;
-        double backLeftPower   = (ft - lateral + giro) * velocidade;
-        double backRightPower  = (ft + lateral - giro) * velocidade;
+        double fl = (ft + lateral + giro) * velocidade;
+        double fr = (ft - lateral - giro) * velocidade;
+        double bl = (ft - lateral + giro) * velocidade;
+        double br = (ft + lateral - giro) * velocidade;
 
-        // Garante que nenhuma potência ultrapasse 1.0 (limite máximo do motor)
-        double max = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
-        max = Math.max(max, Math.abs(backLeftPower));
-        max = Math.max(max, Math.abs(backRightPower));
+        double max = Math.max(Math.max(Math.abs(fl), Math.abs(fr)),
+                Math.max(Math.abs(bl), Math.abs(br)));
 
         if (max > 1.0) {
-            frontLeftPower  = frontLeftPower / max;
-            frontRightPower = frontRightPower / max;
-            backLeftPower   = backLeftPower / max;
-            backRightPower  = backRightPower / max;
+            fl /= max; fr /= max; bl /= max; br /= max;
         }
 
-        leftFront.setPower(frontLeftPower);
-        leftBack.setPower(backLeftPower);
-        rightFront.setPower(frontRightPower);
-        rightBack.setPower(backRightPower);
+        leftFront.setPower(fl);
+        leftBack.setPower(bl);
+        rightFront.setPower(fr);
+        rightBack.setPower(br);
+    }
+
+    // =========================================
+    // =========== FEEDER =======================
+    // =========================================
+    private void feederControl() {
+
+        String statusFeeder = "FEEDER: Desligado";
+
+        if (gamepad2.right_bumper) {
+            feeder.setPower(0.8);
+            statusFeeder = "FEEDER: Coletando";
+        }
+        else if (gamepad2.left_bumper) {
+            feeder.setPower(-0.8);
+            statusFeeder = "FEEDER: Retirando";
+        }
+        else {
+            feeder.setPower(0.0);
+        }
+
+        telemetry.addLine(statusFeeder);
     }
 }
-
-
