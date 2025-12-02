@@ -4,8 +4,8 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
-@Disabled
 @TeleOp(name="TESTE RODAS")
 public class testeRodas extends LinearOpMode {
 
@@ -52,7 +52,7 @@ public class testeRodas extends LinearOpMode {
         rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
         // DIREÇÃO MOTORES MOVIMENTO
         leftFront.setDirection(DcMotorEx.Direction.REVERSE);
-        leftBack.setDirection(DcMotorEx.Direction.FORWARD);
+        leftBack.setDirection(DcMotorEx.Direction.REVERSE);
         rightFront.setDirection(DcMotorEx.Direction.REVERSE);
         rightBack.setDirection(DcMotorEx.Direction.FORWARD);
     }
