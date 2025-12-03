@@ -70,8 +70,10 @@ public class AutonomoP1Vermelho extends OpMode {
                             new Pose(11.000,60.000),
                             new Pose(32.430, 47.919)
                     ))
-                    .setTangentHeadingInterpolation()
-                    .setReversed(true)
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(153),
+                            Math.toRadians(153)
+                    )
                     .build();
 
             EMPURRAR = follower.pathBuilder()
@@ -99,8 +101,9 @@ public class AutonomoP1Vermelho extends OpMode {
                             new Pose(12.343, 9.000),
                             new Pose(56.000, 9.000)
                     ))
-                    .setTangentHeadingInterpolation()
-                    .setReversed(true)
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(180),
+                            Math.toRadians(180))
                     .build();
 
             FEEDING_BASE = follower.pathBuilder()
@@ -116,8 +119,9 @@ public class AutonomoP1Vermelho extends OpMode {
                             new Pose(11.100, 9.000),
                             new Pose(56.000, 9.000)
                     ))
-                    .setTangentHeadingInterpolation()
-                    .setReversed(true)
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(180),
+                            Math.toRadians(180))
                     .build();
         }
     }
@@ -173,7 +177,7 @@ public class AutonomoP1Vermelho extends OpMode {
 
             case AJUSTE_EMPURRAR:
                 if(!follower.isBusy()){
-                    follower.setMaxPower(0.3);
+                    //follower.setMaxPower(0.3);
                     follower.followPath(paths.AJUSTE_EMPURRAR, true);
                     setPathState(PathState.AJUSTE_EMPURRAR);
                     telemetry.addLine("AJUSTE PARA EMPURRAR - OK");
