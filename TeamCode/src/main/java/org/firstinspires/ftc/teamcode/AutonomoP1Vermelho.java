@@ -11,113 +11,120 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
-
-@Autonomous
+@Autonomous(name = "Autonomo P1 Vermelho")
 public class AutonomoP1Vermelho extends OpMode {
 
-    // Criando objetos
     private DcMotorEx feeder;
     private Follower follower;
     private Paths paths;
     private Timer pathTimer;
     private PathState pathState;
 
-    public enum PathState{
+    public enum PathState {
         AJUSTANDO_FEEDING,
         FEEDING,
         AJUSTE_EMPURRAR,
         EMPURRAR,
         AJUSTE_PAREDE,
-        DESCE_SHOOT1,
+        DESCE_SHOOT_1,
         FEEDING_BASE,
-        DESCE_SHOOT2,
-        FIM
+        DESCE_SHOOT_2,
+        DONE
     }
 
-    public static class Paths{
-        public PathChain AJUSTANDO_FEEDING;
+    public static class Paths {
+        public PathChain AJUSTANDOFEEDING;
         public PathChain FEEDING;
-        public PathChain AJUSTE_EMPURRAR;
+        public PathChain AJUSTEEMPURRAR;
         public PathChain EMPURRAR;
-        public PathChain AJUSTE_PAREDE;
-        public PathChain DESCE_SHOOT1;
-        public PathChain FEEDING_BASE;
-        public PathChain DESCE_SHOOT2;
+        public PathChain AJUSTEPAREDE;
+        public PathChain DESCESHOOT1;
+        public PathChain FEEDINGBASE;
+        public PathChain DESCESHOOT2;
 
-        public Paths(Follower follower){
-
-            AJUSTANDO_FEEDING = follower.pathBuilder()
+        public Paths(Follower follower) {
+            AJUSTANDOFEEDING = follower
+                    .pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(56.000,9.000), //POSIÇÃO INICIAL
-                            new Pose(56.000, 60.000)
+                            new Pose(56.000, 9.000),
+                            new Pose(40.000, 65.800)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(90),
-                            Math.toRadians(180)
-                    )
+                            Math.toRadians(180))
                     .build();
 
-            FEEDING = follower.pathBuilder()
+            FEEDING = follower
+                    .pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(56.000, 60.000),
-                            new Pose(11.000, 60.000)
-                    ))
-                    .setTangentHeadingInterpolation()
-                    .build();
-
-            AJUSTE_EMPURRAR = follower.pathBuilder()
-                    .addPath(new BezierLine(
-                            new Pose(11.000,60.000),
-                            new Pose(32.430, 47.919)
+                            new Pose(40.000, 65.800),
+                            new Pose(7.750, 65.800)
                     ))
                     .setLinearHeadingInterpolation(
-                            Math.toRadians(153),
-                            Math.toRadians(153)
-                    )
+                            Math.toRadians(180),
+                            Math.toRadians(180))
                     .build();
 
-            EMPURRAR = follower.pathBuilder()
+            AJUSTEEMPURRAR = follower
+                    .pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(32.430, 47.919),
-                            new Pose(12.343, 14.763)
+                            new Pose(7.750, 65.800),
+                            new Pose(23.430, 52.500)
+                    ))
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(151),
+                            Math.toRadians(151))
+                    .build();
+
+            EMPURRAR = follower
+                    .pathBuilder()
+                    .addPath(new BezierLine(
+                            new Pose(23.430, 52.500),
+                            new Pose(12.343, 17.500)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(140),
                             Math.toRadians(140))
                     .build();
 
-            AJUSTE_PAREDE = follower.pathBuilder()
+            AJUSTEPAREDE = follower
+                    .pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(12.343, 14.763),
-                            new Pose(12.343, 9.000)
+                            new Pose(12.343, 17.500),
+                            new Pose(12.343, 16.000)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(180),
                             Math.toRadians(180))
                     .build();
 
-            DESCE_SHOOT1 = follower.pathBuilder()
+            DESCESHOOT1 = follower
+                    .pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(12.343, 9.000),
-                            new Pose(56.000, 9.000)
+                            new Pose(12.343, 16.000),
+                            new Pose(56.000, 16.000)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(180),
                             Math.toRadians(180))
                     .build();
 
-            FEEDING_BASE = follower.pathBuilder()
+            FEEDINGBASE = follower
+                    .pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(56.000, 9.000),
-                            new Pose(11.100, 9.000)
+                            new Pose(56.000, 16.000),
+                            new Pose(4.000, 16.000)
                     ))
-                    .setTangentHeadingInterpolation()
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(180),
+                            Math.toRadians(180))
                     .build();
 
-            DESCE_SHOOT2 = follower.pathBuilder()
+            DESCESHOOT2 = follower
+                    .pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(11.100, 9.000),
-                            new Pose(56.000, 9.000)
+                            new Pose(4.000, 16.000),
+                            new Pose(56.000, 16.000)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(180),
@@ -127,8 +134,7 @@ public class AutonomoP1Vermelho extends OpMode {
     }
 
     @Override
-    public void init(){
-
+    public void init() {
         feeder = hardwareMap.get(DcMotorEx.class, "feeder");
 
         follower = Constants.createFollower(hardwareMap);
@@ -137,121 +143,106 @@ public class AutonomoP1Vermelho extends OpMode {
         pathTimer = new Timer();
         pathState = PathState.AJUSTANDO_FEEDING;
 
-        // POSIÇÃO INICIAL
-        follower.setPose(
-                new Pose(56.000,9.000)
-        );
+        // Posição inicial baseada no primeiro ponto do primeiro caminho
+        follower.setPose(new Pose(56.000, 9.000, Math.toRadians(90)));
     }
 
     @Override
-    public void start(){
+    public void start() {
         pathTimer.resetTimer();
     }
 
-    private void setPathState(PathState newState){
+    private void setPathState(PathState newState) {
         pathState = newState;
         pathTimer.resetTimer();
     }
 
     private void statePathUpdate() {
-        // MÁQUINA DE ESTADO
-        switch(pathState){
-
+        switch (pathState) {
             case AJUSTANDO_FEEDING:
-                follower.setMaxPower(1);
-                follower.followPath(paths.AJUSTANDO_FEEDING, true);
+                follower.setMaxPower(0.7);
+                follower.followPath(paths.AJUSTANDOFEEDING, true);
                 setPathState(PathState.FEEDING);
-                telemetry.addLine("AJUSTE FEED - OK");
                 break;
 
             case FEEDING:
-                if(!follower.isBusy()){
+                if (!follower.isBusy()) {
                     feeder.setPower(-1);
-
-                    follower.setMaxPower(0.6);
+                    follower.setMaxPower(0.3);
                     follower.followPath(paths.FEEDING, true);
                     setPathState(PathState.AJUSTE_EMPURRAR);
-                    telemetry.addLine("FEEDING - OK");
                 }
                 break;
 
             case AJUSTE_EMPURRAR:
-                if(!follower.isBusy()){
-                    //follower.setMaxPower(0.3);
-                    follower.followPath(paths.AJUSTE_EMPURRAR, true);
-                    setPathState(PathState.AJUSTE_EMPURRAR);
-                    telemetry.addLine("AJUSTE PARA EMPURRAR - OK");
+                if (!follower.isBusy()) {
+                    feeder.setPower(-1);
+                    follower.setMaxPower(0.5);
+                    follower.followPath(paths.AJUSTEEMPURRAR, true);
+                    setPathState(PathState.EMPURRAR);
+                    feeder.setPower(0);
                 }
-                feeder.setPower(0);
+
                 break;
 
             case EMPURRAR:
-                if (!follower.isBusy()){
-                    follower.setMaxPower(0.3);
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(0.5);
                     follower.followPath(paths.EMPURRAR, true);
                     setPathState(PathState.AJUSTE_PAREDE);
-                    telemetry.addLine("EMPURRAR - OK");
                 }
                 break;
 
             case AJUSTE_PAREDE:
-                if(!follower.isBusy()){
-                    follower.setMaxPower(1);
-                    follower.followPath(paths.AJUSTE_PAREDE, true);
-                    setPathState(PathState.DESCE_SHOOT1);
-                    telemetry.addLine("AJUSTE NA PAREDE - OK");
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(0.5);
+                    follower.followPath(paths.AJUSTEPAREDE, true);
+                    setPathState(PathState.DESCE_SHOOT_1);
                 }
                 break;
 
-            case DESCE_SHOOT1:
-                if(!follower.isBusy()){
+            case DESCE_SHOOT_1:
+                if (!follower.isBusy()) {
                     follower.setMaxPower(1);
-                    follower.followPath(paths.DESCE_SHOOT1, true);
+                    follower.followPath(paths.DESCESHOOT1, true);
                     setPathState(PathState.FEEDING_BASE);
-                    telemetry.addLine("VOLTAR PARA ATIRAR 1 - OK");
                 }
                 break;
 
             case FEEDING_BASE:
-                if(!follower.isBusy()){
-                    feeder.setPower(-1);
-
+                if (!follower.isBusy()) {
+                    feeder.setPower(-1); // Ativa o feeder
                     follower.setMaxPower(0.6);
-                    follower.followPath(paths.FEEDING_BASE, true);
-                    setPathState(PathState.DESCE_SHOOT2);
-                    telemetry.addLine("FEEDING DA BASE - OK");
+                    follower.followPath(paths.FEEDINGBASE, true);
+                    setPathState(PathState.DESCE_SHOOT_2);
                 }
                 break;
 
-            case DESCE_SHOOT2:
-                if(!follower.isBusy()){
+            case DESCE_SHOOT_2:
+                if (!follower.isBusy()) {
                     follower.setMaxPower(1);
-                    follower.followPath(paths.DESCE_SHOOT2);
-                    setPathState(PathState.FIM);
-                    telemetry.addLine("VOLTAR PARA ATIRAR 2 - OK");
+                    follower.followPath(paths.DESCESHOOT2, true);
+                    setPathState(PathState.DONE);
                 }
+                break;
+
+            case DONE:
+                // Para o feeder quando terminar
                 feeder.setPower(0);
-                break;
-
-            case FIM:
-                break;
-
-            default:
-                telemetry.addLine("NENHUM CAMINHO RODANDO");
                 break;
         }
     }
 
     @Override
     public void loop() {
-
         follower.update();
         statePathUpdate();
 
         telemetry.addData("Estado", pathState);
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
-        telemetry.addData("Heading", follower.getPose().getHeading());
+        telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
         telemetry.addData("Tempo Estado", pathTimer.getElapsedTimeSeconds());
+        telemetry.addData("Busy", follower.isBusy());
     }
 }
