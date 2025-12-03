@@ -22,54 +22,111 @@ public class AutonomoP2Vermelho extends OpMode {
     private Timer pathTimer;
     private PathState pathState;
     public enum PathState {
-        DESCER_SHOOT,
-        AJUSTE_FEED,
-        FEEDING,
-        VOLTA_SHOOT,
+        DESCER_SHOOT1,
+        AJUSTE_FEED_MEIO,
+        FEED_MEIO,
+        AJUSTE_VOLTA,
+        VOLTA_SHOOT2,
+        AJUSTE_FEED_CIMA,
+        FEED_CIMA,
+        VOLTA_SHOOT3,
         DONE
     }
 
     public static class Paths {
 
-        public PathChain DesceShoot;
-        public PathChain AjusteFeed;
-        public PathChain Feeding;
-        public PathChain VoltaShoot;
+        public PathChain DESCERSHOOT1;
+        public PathChain AJUSTEFEEDMEIO;
+        public PathChain FEEDMEIO;
+        public PathChain AJUSTEVOLTA;
+        public PathChain VOLTASHOOT2;
+        public PathChain AJUSTEFEEDCIMA;
+        public PathChain FEEDCIMA;
+        public PathChain VOLTASHOOT3;
 
         public Paths(Follower follower) {
 
-            DesceShoot = follower.pathBuilder()
+            DESCERSHOOT1 = follower.pathBuilder()
                     .addPath(new BezierLine(
                             new Pose(124.155, 123.187),
                             new Pose(90, 89.5)
                     ))
                     .setLinearHeadingInterpolation(
-                            Math.toRadians(37),
+                            Math.toRadians(43),
                             Math.toRadians(0)
                     )
                     .build();
 
-            AjusteFeed = follower.pathBuilder()
+            AJUSTEFEEDMEIO = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(104.067, 103.099),
-                            new Pose(104.067, 90)
+                            new Pose(90, 89.5),
+                            new Pose(103.1, 59.7)
                     ))
-                    .setConstantHeadingInterpolation(Math.toRadians(0))
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(0),
+                            Math.toRadians(0)
+                    )
                     .build();
 
-            Feeding = follower.pathBuilder()
+            FEEDMEIO = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(104.067, 84.000),
-                            new Pose(123, 84.000)
+                            new Pose(103.1, 59.7),
+                            new Pose(129.6, 59.7)
                     ))
-                    .setTangentHeadingInterpolation()
-                    .setVelocityConstraint(0.5)
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(0),
+                            Math.toRadians(0)
+                    )
                     .build();
 
-            VoltaShoot = follower.pathBuilder()
+            AJUSTEVOLTA = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(129.500, 84.000),
-                            new Pose(104.067, 103.099)
+                            new Pose(129.6, 59.7),
+                            new Pose(126, 59.7)
+                    ))
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(0),
+                            Math.toRadians(0)
+                    )
+                    .build();
+
+            VOLTASHOOT2 = follower.pathBuilder()
+                    .addPath(new BezierLine(
+                            new Pose(126, 59.7),
+                            new Pose(90, 89.5)
+                    ))
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(0),
+                            Math.toRadians(0)
+                    )
+                    .build();
+
+            AJUSTEFEEDCIMA = follower.pathBuilder()
+                    .addPath(new BezierLine(
+                            new Pose(90, 89.5),
+                            new Pose(103, 84.2)
+                    ))
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(0),
+                            Math.toRadians(0)
+                    )
+                    .build();
+
+            FEEDCIMA = follower.pathBuilder()
+                    .addPath(new BezierLine(
+                            new Pose(103, 84.2),
+                            new Pose(126, 84.2)
+                    ))
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(0),
+                            Math.toRadians(0)
+                    )
+                    .build();
+
+            VOLTASHOOT3 = follower.pathBuilder()
+                    .addPath(new BezierLine(
+                            new Pose(126, 84.2),
+                            new Pose(90, 89.5)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(0),
@@ -88,7 +145,7 @@ public class AutonomoP2Vermelho extends OpMode {
         paths = new Paths(follower);
 
         pathTimer = new Timer();
-        pathState = PathState.DESCER_SHOOT;
+        pathState = PathState.DESCER_SHOOT1;
 
         follower.setPose(
                 new Pose(124.155, 123.187, Math.toRadians(37))
@@ -109,35 +166,77 @@ public class AutonomoP2Vermelho extends OpMode {
 
         switch (pathState) {
 
-            case DESCER_SHOOT:
+            case DESCER_SHOOT1:
                 follower.setMaxPower(1);
-                follower.followPath(paths.DesceShoot, true);
-                setPathState(PathState.AJUSTE_FEED);
+                follower.followPath(paths.DESCERSHOOT1, true);
+                setPathState(PathState.AJUSTE_FEED_MEIO);
                 break;
 
-            case AJUSTE_FEED:
+            case AJUSTE_FEED_MEIO:
                 if (!follower.isBusy()) {
                     follower.setMaxPower(0.3);
-                    follower.followPath(paths.AjusteFeed, true);
-                    setPathState(PathState.FEEDING);
+                    follower.followPath(paths.AJUSTEFEEDMEIO, true);
+                    setPathState(PathState.FEED_MEIO);
                 }
                 break;
 
-            case FEEDING:
+            case FEED_MEIO:
                 if (!follower.isBusy()) {
                     feeder.setPower(-1);
+
                     follower.setMaxPower(0.3);
-                    follower.followPath(paths.Feeding, true);
-                    setPathState(PathState.VOLTA_SHOOT);
+                    follower.followPath(paths.FEEDMEIO, true);
+                    setPathState(PathState.AJUSTE_VOLTA);
                 }
                 break;
 
-            case VOLTA_SHOOT:
+            case AJUSTE_VOLTA:
+                if (!follower.isBusy()) {
+                    feeder.setPower(-1);
+
+                    follower.setMaxPower(0.3);
+                    follower.followPath(paths.AJUSTEVOLTA, true);
+                    setPathState(PathState.VOLTA_SHOOT2);
+
+                    feeder.setPower(0);
+                }
+                break;
+
+            case VOLTA_SHOOT2:
                 if (!follower.isBusy()) {
                     follower.setMaxPower(1);
+                    follower.followPath(paths.VOLTASHOOT2, true);
+                    setPathState(PathState.AJUSTE_FEED_CIMA);
+                }
+                break;
+
+            case AJUSTE_FEED_CIMA:
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(1);
+                    follower.followPath(paths.AJUSTEFEEDCIMA, true);
+                    setPathState(PathState.FEED_CIMA);
+                }
+                break;
+
+            case FEED_CIMA:
+                if (!follower.isBusy()) {
                     feeder.setPower(-1);
-                    follower.followPath(paths.VoltaShoot, true);
+
+                    follower.setMaxPower(1);
+                    follower.followPath(paths.FEEDCIMA, true);
+                    setPathState(PathState.VOLTA_SHOOT3);
+                }
+                break;
+
+            case VOLTA_SHOOT3:
+                if (!follower.isBusy()) {
+                    feeder.setPower(-1);
+
+                    follower.setMaxPower(1);
+                    follower.followPath(paths.VOLTASHOOT3, true);
                     setPathState(PathState.DONE);
+
+                    feeder.setPower(0);
                 }
                 break;
 

@@ -201,11 +201,11 @@ public class teleopVermelho extends LinearOpMode {
         String statusFeeder = "FEEDER: Desligado";
 
         if (gamepad2.right_bumper) {
-            feeder.setPower(0.8);
+            feeder.setPower(1); //usar 0.8
             statusFeeder = "FEEDER: Coletando";
         }
         else if (gamepad2.left_bumper) {
-            feeder.setPower(-0.8);
+            feeder.setPower(-1); //usar 0.8
             statusFeeder = "FEEDER: Retirando";
         }
         else {

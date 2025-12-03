@@ -43,8 +43,7 @@ public class AutonomoP1Vermelho extends OpMode {
         public PathChain DESCESHOOT2;
 
         public Paths(Follower follower) {
-            AJUSTANDOFEEDING = follower
-                    .pathBuilder()
+            AJUSTANDOFEEDING = follower.pathBuilder()
                     .addPath(new BezierLine(
                             new Pose(56.000, 9.000),
                             new Pose(40.000, 65.800)
@@ -113,7 +112,7 @@ public class AutonomoP1Vermelho extends OpMode {
                     .pathBuilder()
                     .addPath(new BezierLine(
                             new Pose(56.000, 16.000),
-                            new Pose(4.000, 16.000)
+                            new Pose(0.000, 16.000)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(180),
@@ -123,7 +122,7 @@ public class AutonomoP1Vermelho extends OpMode {
             DESCESHOOT2 = follower
                     .pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(4.000, 16.000),
+                            new Pose(0.000, 16.000),
                             new Pose(56.000, 16.000)
                     ))
                     .setLinearHeadingInterpolation(
@@ -168,6 +167,7 @@ public class AutonomoP1Vermelho extends OpMode {
             case FEEDING:
                 if (!follower.isBusy()) {
                     feeder.setPower(-1);
+
                     follower.setMaxPower(0.3);
                     follower.followPath(paths.FEEDING, true);
                     setPathState(PathState.AJUSTE_EMPURRAR);
@@ -177,6 +177,7 @@ public class AutonomoP1Vermelho extends OpMode {
             case AJUSTE_EMPURRAR:
                 if (!follower.isBusy()) {
                     feeder.setPower(-1);
+
                     follower.setMaxPower(0.5);
                     follower.followPath(paths.AJUSTEEMPURRAR, true);
                     setPathState(PathState.EMPURRAR);
@@ -203,6 +204,7 @@ public class AutonomoP1Vermelho extends OpMode {
 
             case DESCE_SHOOT_1:
                 if (!follower.isBusy()) {
+
                     follower.setMaxPower(1);
                     follower.followPath(paths.DESCESHOOT1, true);
                     setPathState(PathState.FEEDING_BASE);
