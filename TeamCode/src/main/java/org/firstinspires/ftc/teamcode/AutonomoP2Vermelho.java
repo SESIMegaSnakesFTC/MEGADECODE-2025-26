@@ -5,12 +5,13 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
 
 @Autonomous(name = "Autonomo TESTE")
 public class AutonomoP2Vermelho extends OpMode {
@@ -19,7 +20,6 @@ public class AutonomoP2Vermelho extends OpMode {
     private Follower follower;
     private Paths paths;
     private Timer pathTimer;
-
     private PathState pathState;
     public enum PathState {
         DESCER_SHOOT,
