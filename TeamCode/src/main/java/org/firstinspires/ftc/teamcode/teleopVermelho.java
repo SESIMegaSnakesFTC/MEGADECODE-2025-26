@@ -76,9 +76,7 @@ public class teleopVermelho extends LinearOpMode
             driveMecanum();
             feederControl();
 
-            // *********************************************
             // Quando o botão X é pressionado no gamepad1:
-            // *********************************************
             if (gamepad1.x) {
 
                 // --- POSE ATUAL DO ROBÔ ---
@@ -124,9 +122,7 @@ public class teleopVermelho extends LinearOpMode
         }
     }
 
-    // =========================================
     // =========== CONFIGS HARDWARE ============
-    // =========================================
     private void initconfigH() {
 
         // INICIANDO MOTORES DE MOVIMENTO
@@ -138,7 +134,7 @@ public class teleopVermelho extends LinearOpMode
         // INICIANDO MOTORES E SERVOS MECANINSMOS
         feeder = hardwareMap.get(DcMotor.class, "feeder");
         //shooter = hardwareMap.get(DcMotor.class, "shooter");
-        //baseShooter = hardwareMap.get(DcMotorEx.class, "baseShooter");
+        baseShooter = hardwareMap.get(DcMotorEx.class, "baseShooter");
         //regulShooter1 = hardwareMap.get(Servo.class, "regulShooter1");
         //regulShooter2 = hardwareMap.get(Servo.class, "regulShooter2");
 
@@ -151,7 +147,7 @@ public class teleopVermelho extends LinearOpMode
         // DIREÇÃO MOTORES MECANISMOS
         feeder.setDirection(DcMotor.Direction.REVERSE);
         //shooter.setDirection(DcMotor.Direction.REVERSE);
-        //baseShooter.setDirection(DcMotorEx.Direction.FORWARD);
+        baseShooter.setDirection(DcMotorEx.Direction.FORWARD);
 
         // COMPORTAMENTO DOS MOTORES
         // CHASSI E BASE SHOOTER FREIO DE MÃO
@@ -159,7 +155,7 @@ public class teleopVermelho extends LinearOpMode
         leftBack.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         rightFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         rightBack.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        //baseShooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        baseShooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
         // FEEDER E SHOOTER
         feeder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -175,7 +171,7 @@ public class teleopVermelho extends LinearOpMode
         //shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         // RUN TO POSITION
-        //baseShooter.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+        baseShooter.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
     }
 
     private void driveMecanum() {
