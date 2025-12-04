@@ -127,8 +127,8 @@ public class teleopVermelho extends LinearOpMode {
         feeder = hardwareMap.get(DcMotor.class, "feeder");
 
         leftFront.setDirection(DcMotorEx.Direction.FORWARD);
-        leftBack.setDirection(DcMotorEx.Direction.FORWARD);
-        rightFront.setDirection(DcMotorEx.Direction.FORWARD);
+        leftBack.setDirection(DcMotorEx.Direction.REVERSE);
+        rightFront.setDirection(DcMotorEx.Direction.REVERSE);
         rightBack.setDirection(DcMotorEx.Direction.REVERSE);
 
         feeder.setDirection(DcMotor.Direction.REVERSE);
