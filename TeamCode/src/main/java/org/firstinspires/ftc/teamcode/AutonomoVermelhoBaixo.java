@@ -9,18 +9,28 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
-@Autonomous(name = "Autonomo P1 Vermelho")
-public class AutonomoP1Vermelho extends OpMode {
+@Autonomous(name = "VERMELHO BAIXO")
+public class AutonomoVermelhoBaixo extends OpMode {
 
+    private DcMotorEx baseShooter;
     private DcMotorEx feeder;
     private Follower follower;
     private Paths paths;
     private Timer pathTimer;
     private PathState pathState;
 
+    private static final int POSICAO_SHOOT = 300;
+    private static final int TOLERANCIA = 10;
+
     public enum PathState {
+
+        RESET_MOTOR,
+        POS_ZERO_BASE,
+        POS_SHOOT_BASE,
         AJUSTANDO_FEEDING,
         FEEDING,
         AJUSTE_EMPURRAR,
@@ -136,11 +146,16 @@ public class AutonomoP1Vermelho extends OpMode {
     public void init() {
         feeder = hardwareMap.get(DcMotorEx.class, "feeder");
 
+        baseShooter = hardwareMap.get(DcMotorEx.class, "baseShooter");
+        baseShooter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        baseShooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        baseShooter.setDirection(DcMotorSimple.Direction.FORWARD);
+
         follower = Constants.createFollower(hardwareMap);
         paths = new Paths(follower);
 
         pathTimer = new Timer();
-        pathState = PathState.AJUSTANDO_FEEDING;
+        pathState = PathState.RESET_MOTOR;
 
         // Posição inicial baseada no primeiro ponto do primeiro caminho
         follower.setPose(new Pose(56.000, 9.000, Math.toRadians(90)));
@@ -158,6 +173,28 @@ public class AutonomoP1Vermelho extends OpMode {
 
     private void statePathUpdate() {
         switch (pathState) {
+
+            case RESET_MOTOR:
+                baseShooter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                baseShooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                setPathState(PathState.POS_ZERO_BASE);
+                break;
+
+            case POS_ZERO_BASE:
+                baseShooter.setTargetPosition(0);
+                baseShooter.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                baseShooter.setPower(0.4);
+                setPathState(PathState.POS_SHOOT_BASE);
+                break;
+
+            case POS_SHOOT_BASE:
+                if(Math.abs(baseShooter.getCurrentPosition()) <= TOLERANCIA){
+                    baseShooter.setTargetPosition(POSICAO_SHOOT);
+                    baseShooter.setPower(0.5);
+                    setPathState(PathState.AJUSTANDO_FEEDING);
+                }
+                break;
+
             case AJUSTANDO_FEEDING:
                 follower.setMaxPower(0.7);
                 follower.followPath(paths.AJUSTANDOFEEDING, true);
@@ -203,7 +240,7 @@ public class AutonomoP1Vermelho extends OpMode {
                 break;
 
             case DESCE_SHOOT_1:
-                if (!follower.isBusy()) {
+                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > 5) {
 
                     follower.setMaxPower(1);
                     follower.followPath(paths.DESCESHOOT1, true);

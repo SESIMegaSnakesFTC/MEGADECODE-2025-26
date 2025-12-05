@@ -13,8 +13,8 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 
 
-@Autonomous(name = "Autonomo P2 Vermelho")
-public class AutonomoP2Vermelho extends OpMode {
+@Autonomous(name = "VERMELHO CIMA")
+public class AutonomoVermelhoCima extends OpMode {
 
     private DcMotorEx feeder;
     private Follower follower;
