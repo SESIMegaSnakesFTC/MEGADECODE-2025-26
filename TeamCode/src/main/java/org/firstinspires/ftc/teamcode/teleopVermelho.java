@@ -28,7 +28,7 @@ public class teleopVermelho extends LinearOpMode
     // DEFININDO MOTORES MECANISMO
     private DcMotor feeder = null;
     private DcMotorEx baseShooter = null;
-    //private DcMotor shooter = null;
+    private DcMotor shooter = null;
 
 
     // DEFININDO SERVOS
@@ -37,8 +37,18 @@ public class teleopVermelho extends LinearOpMode
 
     // CONSTANTES DE CONTROLE
     public double velocidade = 1.0;
-    public boolean rbPressionadoUltimoEstado = false;
-    public boolean lbPressionadoUltimoEstado = false;
+
+    // VARIÁVEIS DE CONTROLE
+    // VELOCIDADE CHASSI
+    public boolean rbPressUltEst_G1 = false;
+    public boolean lbPressUltEst_G1 = false;
+
+    // SHOOTER
+    boolean shooterLigado = false;
+    public boolean rbPressUltEst_G2 = false;
+    public boolean lbPressUltEst_G2 = false;
+    double[] velShooter = {1.0, 0.8, 0.6, 0.4};
+    int indiceVel = 0;
 
     // --- PEDRO PATHING ---
     private Follower follower;
@@ -74,7 +84,8 @@ public class teleopVermelho extends LinearOpMode
         while (opModeIsActive()) {
 
             driveMecanum();
-            feederControl();
+            controleFeeder();
+            ligarShooter();
 
             // Quando o botão X é pressionado no gamepad1:
             if (gamepad1.x) {
@@ -133,7 +144,7 @@ public class teleopVermelho extends LinearOpMode
 
         // INICIANDO MOTORES E SERVOS MECANINSMOS
         feeder = hardwareMap.get(DcMotor.class, "feeder");
-        //shooter = hardwareMap.get(DcMotor.class, "shooter");
+        shooter = hardwareMap.get(DcMotor.class, "shooter");
         baseShooter = hardwareMap.get(DcMotorEx.class, "baseShooter");
         //regulShooter1 = hardwareMap.get(Servo.class, "regulShooter1");
         //regulShooter2 = hardwareMap.get(Servo.class, "regulShooter2");
@@ -146,7 +157,7 @@ public class teleopVermelho extends LinearOpMode
 
         // DIREÇÃO MOTORES MECANISMOS
         feeder.setDirection(DcMotor.Direction.REVERSE);
-        //shooter.setDirection(DcMotor.Direction.REVERSE);
+        shooter.setDirection(DcMotor.Direction.REVERSE);
         baseShooter.setDirection(DcMotorEx.Direction.FORWARD);
 
         // COMPORTAMENTO DOS MOTORES
@@ -159,7 +170,7 @@ public class teleopVermelho extends LinearOpMode
 
         // FEEDER E SHOOTER
         feeder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        //shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         // ENCODER MOTORES
         // SEM ENCODER
@@ -168,7 +179,7 @@ public class teleopVermelho extends LinearOpMode
         rightFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         rightBack.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         feeder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        //shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         // RUN TO POSITION
         baseShooter.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
@@ -181,11 +192,11 @@ public class teleopVermelho extends LinearOpMode
         double giro = gamepad1.right_stick_x; // MOVIMENTO DE GIRO
 
         // CONTROLES RB E LB PARA VELOCIDADE
-        boolean rbPressionado = gamepad1.right_bumper;
-        boolean lbPressionado = gamepad1.left_bumper;
+        boolean rbPress_G1 = gamepad1.right_bumper;
+        boolean lbPress_G1 = gamepad1.left_bumper;
 
         // RB DIMINUI A VELOCIDADE
-        if (rbPressionado && !rbPressionadoUltimoEstado) {
+        if (rbPress_G1 && !rbPressUltEst_G1) {
             if (velocidade > 0.125) {
                 velocidade = velocidade / 2;
 
@@ -195,10 +206,10 @@ public class teleopVermelho extends LinearOpMode
                 }
             }
         }
-        rbPressionadoUltimoEstado = rbPressionado;
+        rbPressUltEst_G1 = rbPress_G1;
 
         // LB AUMENTA A VELOCIDADE
-        if (lbPressionado && !lbPressionadoUltimoEstado) {
+        if (lbPress_G1 && !lbPressUltEst_G1) {
             if (velocidade < 1.0) {
                 velocidade = velocidade * 2;
 
@@ -208,7 +219,7 @@ public class teleopVermelho extends LinearOpMode
                 }
             }
         }
-        lbPressionadoUltimoEstado = lbPressionado;
+        lbPressUltEst_G1 = lbPress_G1;
 
         double frontLeftPower  = (ft + lateral + giro) * velocidade;
         double frontRightPower = (ft - lateral - giro) * velocidade;
@@ -233,18 +244,17 @@ public class teleopVermelho extends LinearOpMode
         rightBack.setPower(backRightPower);
     }
 
-    // =========================================
-    // =========== FEEDER =======================
-    // =========================================
-    private void feederControl() {
+    // ============== FEEDER ======================
+    // ============= GAMEPAD 2 ================
+    private void controleFeeder() {
 
         String statusFeeder = "FEEDER: Desligado";
 
-        if (gamepad2.right_bumper) {
+        if (gamepad2.a) {
             feeder.setPower(1); //usar 0.8
             statusFeeder = "FEEDER: Coletando";
         }
-        else if (gamepad2.left_bumper) {
+        else if (gamepad2.y) {
             feeder.setPower(-1); //usar 0.8
             statusFeeder = "FEEDER: Retirando";
         }
@@ -254,4 +264,43 @@ public class teleopVermelho extends LinearOpMode
 
         telemetry.addLine(statusFeeder);
     }
+
+    private void ligarShooter(){
+
+        String statusShooter = "SHOOTER: DESLIGADO";
+
+        // CLIQUE NO RB
+        boolean rbPress_G2 = gamepad2.right_bumper;
+
+        if (rbPress_G2 && !rbPressUltEst_G2){
+            shooterLigado = !shooterLigado; // SWITCH LIGA/DESLIGA
+        }
+        rbPressUltEst_G2 = rbPress_G2;
+
+        // ALTERNAR ENTRE VELOCIDADES NO LB
+        boolean lbPress_G2 = gamepad2.left_bumper;
+
+        if (lbPress_G2 && !lbPressUltEst_G2) {
+
+            indiceVel = indiceVel + 1;
+
+            if (indiceVel >= velShooter.length){
+                indiceVel = 0;
+            }
+        }
+        lbPressUltEst_G2 = lbPress_G2;
+
+        // DEFININDO POTÊNCIAS DO SHOOTER
+        if (shooterLigado) {
+            shooter.setPower(velShooter[indiceVel]);
+            statusShooter = "SHOOTER: LIGADO | VELOCIDADE: " + velShooter[indiceVel];
+        } else {
+            shooter.setPower(0);
+            statusShooter = "SHOOTER: DESLIGADO";
+        }
+
+        telemetry.addLine(statusShooter);
+    }
+
+    //private void
 }

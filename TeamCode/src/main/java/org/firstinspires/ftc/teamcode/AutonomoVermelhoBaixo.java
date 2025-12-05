@@ -16,6 +16,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 @Autonomous(name = "VERMELHO BAIXO")
 public class AutonomoVermelhoBaixo extends OpMode {
 
+    private DcMotor shooter;
     private DcMotorEx baseShooter;
     private DcMotorEx feeder;
     private Follower follower;
@@ -43,6 +44,8 @@ public class AutonomoVermelhoBaixo extends OpMode {
     }
 
     public static class Paths {
+
+        private DcMotorEx feeder;
         public PathChain AJUSTANDOFEEDING;
         public PathChain FEEDING;
         public PathChain AJUSTEEMPURRAR;
@@ -52,7 +55,9 @@ public class AutonomoVermelhoBaixo extends OpMode {
         public PathChain FEEDINGBASE;
         public PathChain DESCESHOOT2;
 
-        public Paths(Follower follower) {
+        public Paths(Follower follower, DcMotorEx feeder) {
+            this.feeder = feeder;
+
             AJUSTANDOFEEDING = follower.pathBuilder()
                     .addPath(new BezierLine(
                             new Pose(56.000, 9.000),
@@ -69,6 +74,7 @@ public class AutonomoVermelhoBaixo extends OpMode {
                             new Pose(40.000, 65.800),
                             new Pose(7.750, 65.800)
                     ))
+                    .addTemporalCallback(0.2, () -> feeder.setPower(-1))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(180),
                             Math.toRadians(180))
@@ -124,6 +130,7 @@ public class AutonomoVermelhoBaixo extends OpMode {
                             new Pose(56.000, 16.000),
                             new Pose(0.000, 16.000)
                     ))
+                    .addTemporalCallback(0.5, () -> feeder.setPower(-1))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(180),
                             Math.toRadians(180))
@@ -146,13 +153,17 @@ public class AutonomoVermelhoBaixo extends OpMode {
     public void init() {
         feeder = hardwareMap.get(DcMotorEx.class, "feeder");
 
+        shooter = hardwareMap.get(DcMotor.class, "shooter");
+        shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        shooter.setDirection(DcMotorSimple.Direction.REVERSE);
+
         baseShooter = hardwareMap.get(DcMotorEx.class, "baseShooter");
         baseShooter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         baseShooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         baseShooter.setDirection(DcMotorSimple.Direction.FORWARD);
 
         follower = Constants.createFollower(hardwareMap);
-        paths = new Paths(follower);
+        paths = new Paths(follower, feeder);
 
         pathTimer = new Timer();
         pathState = PathState.RESET_MOTOR;
@@ -175,22 +186,34 @@ public class AutonomoVermelhoBaixo extends OpMode {
         switch (pathState) {
 
             case RESET_MOTOR:
+                // SHOOT EM PRELOAD
+                shooter.setPower(1.0);
+
                 baseShooter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
                 baseShooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
                 setPathState(PathState.POS_ZERO_BASE);
                 break;
 
             case POS_ZERO_BASE:
+                // SHOOT EM PRELOAD
+                shooter.setPower(1.0);
+
                 baseShooter.setTargetPosition(0);
                 baseShooter.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 baseShooter.setPower(0.4);
+
                 setPathState(PathState.POS_SHOOT_BASE);
                 break;
 
             case POS_SHOOT_BASE:
                 if(Math.abs(baseShooter.getCurrentPosition()) <= TOLERANCIA){
+                    // SHOOT EM PRELOAD
+                    shooter.setPower(1.0);
+
                     baseShooter.setTargetPosition(POSICAO_SHOOT);
                     baseShooter.setPower(0.5);
+
                     setPathState(PathState.AJUSTANDO_FEEDING);
                 }
                 break;
@@ -203,8 +226,6 @@ public class AutonomoVermelhoBaixo extends OpMode {
 
             case FEEDING:
                 if (!follower.isBusy()) {
-                    feeder.setPower(-1);
-
                     follower.setMaxPower(0.3);
                     follower.followPath(paths.FEEDING, true);
                     setPathState(PathState.AJUSTE_EMPURRAR);
@@ -213,8 +234,6 @@ public class AutonomoVermelhoBaixo extends OpMode {
 
             case AJUSTE_EMPURRAR:
                 if (!follower.isBusy()) {
-                    feeder.setPower(-1);
-
                     follower.setMaxPower(0.5);
                     follower.followPath(paths.AJUSTEEMPURRAR, true);
                     setPathState(PathState.EMPURRAR);
@@ -250,7 +269,6 @@ public class AutonomoVermelhoBaixo extends OpMode {
 
             case FEEDING_BASE:
                 if (!follower.isBusy()) {
-                    feeder.setPower(-1); // Ativa o feeder
                     follower.setMaxPower(0.6);
                     follower.followPath(paths.FEEDINGBASE, true);
                     setPathState(PathState.DESCE_SHOOT_2);
