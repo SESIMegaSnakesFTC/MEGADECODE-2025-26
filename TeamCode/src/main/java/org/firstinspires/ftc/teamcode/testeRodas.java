@@ -25,19 +25,19 @@ public class testeRodas extends LinearOpMode {
         resetRuntime();
 
         while (opModeIsActive()) {
-            leftFront.setPower(0.15);
+            leftFront.setPower(0.7);
             sleep(2000);
             leftFront.setPower(0);
 
-            leftBack.setPower(0.15);
+            leftBack.setPower(0.7);
             sleep(2000);
             leftBack.setPower(0);
 
-            rightFront.setPower(0.15);
+            rightFront.setPower(0.7);
             sleep(2000);
             rightFront.setPower(0);
 
-            rightBack.setPower(0.15);
+            rightBack.setPower(0.7);
             sleep(2000);
             rightBack.setPower(0);
 
@@ -53,7 +53,7 @@ public class testeRodas extends LinearOpMode {
         // DIREÇÃO MOTORES MOVIMENTO
         leftFront.setDirection(DcMotorEx.Direction.REVERSE);
         leftBack.setDirection(DcMotorEx.Direction.REVERSE);
-        rightFront.setDirection(DcMotorEx.Direction.REVERSE);
+        rightFront.setDirection(DcMotorEx.Direction.FORWARD);
         rightBack.setDirection(DcMotorEx.Direction.FORWARD);
     }
 }

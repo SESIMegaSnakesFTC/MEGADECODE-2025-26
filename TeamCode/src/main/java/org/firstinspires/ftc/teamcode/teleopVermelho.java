@@ -131,65 +131,74 @@ public class teleopVermelho extends LinearOpMode
             telemetry.addData("Distância Shoot → Goal", DistanciaPosShootPosGoal);
             telemetry.update();
         }
+
     }
 
     // =========== CONFIGS HARDWARE ============
     private void initconfigH() {
-
         // INICIANDO MOTORES DE MOVIMENTO
-        leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
-        leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
-        rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
-        rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
+        leftFront  = hardwareMap.get(DcMotorEx.class, "leftFront");   // correto
+        leftBack   = hardwareMap.get(DcMotorEx.class, "rightFront");  // dpad_down -> rightFront girou
+        rightFront = hardwareMap.get(DcMotorEx.class, "leftBack");    // dpad_right -> leftBack girou
+        rightBack  = hardwareMap.get(DcMotorEx.class, "rightBack");   // correto
+
 
         // INICIANDO MOTORES E SERVOS MECANINSMOS
         feeder = hardwareMap.get(DcMotor.class, "feeder");
         shooter = hardwareMap.get(DcMotor.class, "shooter");
         baseShooter = hardwareMap.get(DcMotorEx.class, "baseShooter");
-        //regulShooter1 = hardwareMap.get(Servo.class, "regulShooter1");
-        //regulShooter2 = hardwareMap.get(Servo.class, "regulShooter2");
 
-        // DIREÇÃO MOTORES MOVIMENTOS
-        leftFront.setDirection(DcMotorEx.Direction.FORWARD);
-        leftBack.setDirection(DcMotorEx.Direction.REVERSE);
-        rightFront.setDirection(DcMotorEx.Direction.REVERSE);
-        rightBack.setDirection(DcMotorEx.Direction.REVERSE);
+        // APLICA DIREÇÃO COM BASE NOS BOOLEANS
+        leftFront.setDirection(DcMotor.Direction.REVERSE);
+        leftBack.setDirection(DcMotor.Direction.FORWARD);
 
-        // DIREÇÃO MOTORES MECANISMOS
+        rightFront.setDirection(DcMotor.Direction.REVERSE);
+        rightBack.setDirection(DcMotor.Direction.FORWARD);
+
+
+        // DIREÇÃO MOTORES MECANISMOS (mantive suas escolhas)
         feeder.setDirection(DcMotor.Direction.REVERSE);
         shooter.setDirection(DcMotor.Direction.REVERSE);
         baseShooter.setDirection(DcMotorEx.Direction.FORWARD);
 
         // COMPORTAMENTO DOS MOTORES
-        // CHASSI E BASE SHOOTER FREIO DE MÃO
+        // CHASSI E BASE SHOOTER - FREIO DE MÃO
         leftFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         leftBack.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         rightFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         rightBack.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         baseShooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        // FEEDER E SHOOTER
+        // FEEDER E SHOOTER (mantenho FLOAT como antes)
         feeder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        // ENCODER MOTORES
-        // SEM ENCODER
-        leftFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-        leftBack.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-        rightFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-        rightBack.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        // RUN MODES
+        // Recomendo RUN_USING_ENCODER para chassi — melhora resposta e frenagem
+        leftFront.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        leftBack.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        rightFront.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        rightBack.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+
+        // FEEDER E SHOOTER continuam sem encoder (se for o caso)
         feeder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        // RUN TO POSITION
-        baseShooter.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+        // BASE SHOOTER com encoder para usar RUN_TO_POSITION se precisar
+        baseShooter.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
     }
+
 
     private void driveMecanum() {
 
         double ft = -gamepad1.left_stick_y; // MOVIMENTO FRENTE E TRÁS
         double lateral = gamepad1.left_stick_x; // MOVIMENTO LATERAL
         double giro = gamepad1.right_stick_x; // MOVIMENTO DE GIRO
+
+        // ZONA MORTA – impede valores minúsculos que desativam o BRAKE
+        if (Math.abs(ft) < 0.05) ft = 0;
+        if (Math.abs(lateral) < 0.05) lateral = 0;
+        if (Math.abs(giro) < 0.05) giro = 0;
 
         // CONTROLES RB E LB PARA VELOCIDADE
         boolean rbPress_G1 = gamepad1.right_bumper;
