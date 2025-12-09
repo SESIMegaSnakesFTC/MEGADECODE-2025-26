@@ -60,7 +60,7 @@ public class AutonomoVermelhoCima extends OpMode {
             AJUSTEFEEDMEIO = follower.pathBuilder()
                     .addPath(new BezierLine(
                             new Pose(90, 89.5),
-                            new Pose(103.1, 59.7)
+                            new Pose(93, 60)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(0),
@@ -70,8 +70,8 @@ public class AutonomoVermelhoCima extends OpMode {
 
             FEEDMEIO = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(103.1, 59.7),
-                            new Pose(129.6, 59.7)
+                            new Pose(93, 60),
+                            new Pose(125, 59.7)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(0),
@@ -81,8 +81,8 @@ public class AutonomoVermelhoCima extends OpMode {
 
             AJUSTEVOLTA = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(129.6, 59.7),
-                            new Pose(126, 59.7)
+                            new Pose(125, 59.7),
+                            new Pose(90, 59.7)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(0),
@@ -92,7 +92,7 @@ public class AutonomoVermelhoCima extends OpMode {
 
             VOLTASHOOT2 = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(126, 59.7),
+                            new Pose(90, 59.7),
                             new Pose(90, 89.5)
                     ))
                     .setLinearHeadingInterpolation(
@@ -104,7 +104,7 @@ public class AutonomoVermelhoCima extends OpMode {
             AJUSTEFEEDCIMA = follower.pathBuilder()
                     .addPath(new BezierLine(
                             new Pose(90, 89.5),
-                            new Pose(103, 84.2)
+                            new Pose(98, 84.2)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(0),
@@ -115,7 +115,7 @@ public class AutonomoVermelhoCima extends OpMode {
             FEEDCIMA = follower.pathBuilder()
                     .addPath(new BezierLine(
                             new Pose(103, 84.2),
-                            new Pose(126, 84.2)
+                            new Pose(127, 84.2)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(0),
@@ -174,7 +174,7 @@ public class AutonomoVermelhoCima extends OpMode {
 
             case AJUSTE_FEED_MEIO:
                 if (!follower.isBusy()) {
-                    follower.setMaxPower(0.3);
+                    follower.setMaxPower(0.46);
                     follower.followPath(paths.AJUSTEFEEDMEIO, true);
                     setPathState(PathState.FEED_MEIO);
                 }
@@ -184,7 +184,7 @@ public class AutonomoVermelhoCima extends OpMode {
                 if (!follower.isBusy()) {
                     feeder.setPower(-1);
 
-                    follower.setMaxPower(0.3);
+                    follower.setMaxPower(0.25);
                     follower.followPath(paths.FEEDMEIO, true);
                     setPathState(PathState.AJUSTE_VOLTA);
                 }
@@ -222,7 +222,7 @@ public class AutonomoVermelhoCima extends OpMode {
                 if (!follower.isBusy()) {
                     feeder.setPower(-1);
 
-                    follower.setMaxPower(1);
+                    follower.setMaxPower(0.3);
                     follower.followPath(paths.FEEDCIMA, true);
                     setPathState(PathState.VOLTA_SHOOT3);
                 }

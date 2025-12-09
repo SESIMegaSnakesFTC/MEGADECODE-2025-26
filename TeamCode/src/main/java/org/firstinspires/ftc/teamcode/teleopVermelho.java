@@ -327,10 +327,11 @@ public class teleopVermelho extends LinearOpMode
             shooter.setPower(velShooter[indiceVel]);
             statusShooter = "SHOOTER: LIGADO | VELOCIDADE: " + velShooter[indiceVel];
 
-            if (gamepad2.y){
-                alavanca.setPosition(0.66);
+            if (gamepad2.dpad_up){
+                alavanca.setPosition(0.56);
             }
         } else {
+            alavanca.setPosition(0);
             shooter.setPower(0);
             statusShooter = "SHOOTER: DESLIGADO";
         }
