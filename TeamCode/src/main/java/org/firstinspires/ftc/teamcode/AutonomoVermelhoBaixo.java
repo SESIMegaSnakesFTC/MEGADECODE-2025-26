@@ -60,7 +60,7 @@ public class AutonomoVermelhoBaixo extends OpMode {
 
             AJUSTANDOFEEDING = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(56.000, 9.000),
+                            new Pose(56.000, 11.000),
                             new Pose(40.000, 65.800)
                     ))
                     .setLinearHeadingInterpolation(

@@ -1,11 +1,12 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-//import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.robotcore.hardware.Servo;
 
 @TeleOp(name="Teleoperado Vermelho")
@@ -18,20 +19,32 @@ public class teleopVermelho extends LinearOpMode
     private DcMotorEx rightFront = null;
     private DcMotorEx rightBack = null;
 
-    // DEFININDO MOTORES MECANISMO
+    // DEFININDO MOTORES/SERVOS MECANISMO
     private DcMotor feeder = null;
     private DcMotorEx baseShooter = null;
     private DcMotor shooter = null;
-
-
-    // DEFININDO SERVOS
-    //private Servo regulShooter1 = null;
-    //private Servo regulShooter2 = null;
+    private Servo alavanca = null;
 
     // CONSTANTES DE CONTROLE
     public double velocidade = 1.0;
     public boolean rbPressionadoUltimoEstado = false;
     public boolean lbPressionadoUltimoEstado = false;
+
+    // SHOOTER
+    boolean shooterLigado = false;
+    public boolean A_PressUltEst_G2 = false;
+    public boolean X_PressUltEst_G2 = false;
+    double[] velShooter = {-1.0, -0.85, -0.76};
+    int indiceVel = 0;
+
+    // VARIÁVEIS LIMELIGHT
+    private Limelight3A limelight;
+    private enum LastSeenDirection {LEFT, RIGHT, NONE}
+    private LastSeenDirection lastSeen = LastSeenDirection.NONE;
+    private boolean modoAutomatico = false;
+    private boolean lastTriggerPressed = false;
+    private static final double KP = 0.0095;
+    private static final double SEARCH_SPEED = 0.35;
 
 
     @Override
@@ -52,11 +65,23 @@ public class teleopVermelho extends LinearOpMode
 
         while (opModeIsActive())
         {
+            // 1. CHASSI MECANUM (Gamepad 1)
             driveMecanum();
+
+            // 2. FEEDER (Gamepad 2)
             feederControl();
+
+            // 3. SHOOTER MANUAL (Gamepad 2)
+            ligarShooter();
+
+            // 4. SHOOTER E LIMELIGHT (Gamepad 2)
+            limelightShooterControl();
+
+
 
             // TELEMETRIA
             telemetry.addData("Velocidade movimento atual", "%.3f", velocidade);
+            telemetry.addData("Modo Limelight", modoAutomatico ? "AUTOMÁTICO" : "MANUAL");
             telemetry.update();
         }
     }
@@ -69,10 +94,19 @@ public class teleopVermelho extends LinearOpMode
         rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
         rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
 
-        // INICIANDO MOTORES E SERVOS MECANINSMOS
+        // INICIANDO MOTORES MECANINSMOS
         feeder = hardwareMap.get(DcMotor.class, "feeder");
         shooter = hardwareMap.get(DcMotor.class, "shooter");
         baseShooter = hardwareMap.get(DcMotorEx.class, "baseShooter");
+
+        // INICIANDO SERVOS
+        alavanca = hardwareMap.get(Servo.class, "alavanca");
+        alavanca.setPosition(0);
+
+        // INICIALIZAÇÃO DA LIMELIGHT
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.start();
+        limelight.pipelineSwitch(0); // VERMELHO
 
         // DIREÇÃO MOTORES MOVIMENTO
         leftFront.setDirection(DcMotorEx.Direction.REVERSE);
@@ -94,6 +128,7 @@ public class teleopVermelho extends LinearOpMode
         // FEEDER E SHOOTER
         shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         feeder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        baseShooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // ENCODER MOTORES
         leftFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
@@ -102,23 +137,26 @@ public class teleopVermelho extends LinearOpMode
         rightBack.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         feeder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        baseShooter.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
     }
 
+    // ============ GAMEPAD 1 ============
+    // ========== DRIVE MECANUM ===========
     private void driveMecanum() {
         double ft = gamepad1.left_stick_y; // MOVIMENTO FRETE E TRÁS
         double lateral = -gamepad1.left_stick_x; // MOVIMENTO LATERAL
         double giro = -gamepad1.right_stick_x; // MOVIMENTO DE GIRO
 
-        // Controles RB e LB para velocidade
+        // CONTROLE LB E RB PARA VELOCIDADE
         boolean rbPressionado = gamepad1.right_bumper;
         boolean lbPressionado = gamepad1.left_bumper;
 
-        // RB - Diminui a velocidade
+        // RB - DIMINUI
         if (rbPressionado && !rbPressionadoUltimoEstado){
             if (velocidade > 0.125) {
                 velocidade = velocidade / 2;
 
-                // Garantir que não passe de 0.125
+                // NÃO DEIXA PASSAR DE 0.125
                 if (velocidade < 0.125) {
                     velocidade = 0.125;
                 }
@@ -126,12 +164,12 @@ public class teleopVermelho extends LinearOpMode
         }
         rbPressionadoUltimoEstado = rbPressionado;
 
-        // LB - Aumenta a velocidade
+        // LB - AUMENTA
         if (lbPressionado && !lbPressionadoUltimoEstado) {
             if (velocidade < 1.0){
                 velocidade = velocidade * 2;
 
-                // Garantir que não passe de 1
+                // NÃO PASSA DE 1
                 if (velocidade > 1.0){
                     velocidade = 1.0;
                 }
@@ -162,16 +200,19 @@ public class teleopVermelho extends LinearOpMode
         rightBack.setPower(backRightPower);
     }
 
+    // ============ GAMEPAD 2 ============
+    // ============  FEEDER  =============
     private void feederControl() {
 
         String statusFeeder = "FEEDER: Desligado";
 
+        // MANTIDO NO GAMEPAD 2
         if (gamepad2.right_bumper) {
-            feeder.setPower(1); //usar 0.8
+            feeder.setPower(1);
             statusFeeder = "FEEDER: Coletando";
         }
         else if (gamepad2.left_bumper) {
-            feeder.setPower(-1); //usar 0.8
+            feeder.setPower(-1);
             statusFeeder = "FEEDER: Retirando";
         }
         else {
@@ -180,5 +221,120 @@ public class teleopVermelho extends LinearOpMode
 
         telemetry.addLine(statusFeeder);
     }
-}
 
+
+    // ============ GAMEPAD 2 ============
+    // ======= SHOOTER E LIMELIGHT ========
+    private void limelightShooterControl() {
+
+        // Alternar modo automático (GAMEPAD 2 - Right Trigger)
+        boolean rtPressed = gamepad2.right_trigger > 0.8;
+        if (rtPressed && !lastTriggerPressed) {
+            modoAutomatico = !modoAutomatico;
+        }
+        lastTriggerPressed = rtPressed;
+
+        // Executa modo (Automático ou Manual)
+        if (modoAutomatico) runAutomaticMode();
+        else runManualMode();
+    }
+
+
+
+    // ============ GAMEPAD 2 ============
+    // =========== MODO MANUAL ===========
+    private void runManualMode() {
+        baseShooter.setPower(gamepad2.left_stick_x * 0.35);
+    }
+
+    // =========== MODO AUTOMÁTICO ===========
+    private void runAutomaticMode() {
+
+        LLResult result = limelight.getLatestResult();
+
+        if (result != null && result.isValid()) {
+
+            double rawTx = result.getTx();
+            double tx = -rawTx;
+
+            if (tx > 0) lastSeen = LastSeenDirection.RIGHT;
+            else if (tx < 0) lastSeen = LastSeenDirection.LEFT;
+
+            // Cálculo da correção PID (Proporcional)
+            double correction = tx * KP;
+            // Limita a velocidade máxima de correção
+            correction = Math.max(-0.4, Math.min(0.4, correction));
+
+            baseShooter.setPower(correction);
+
+            telemetry.addLine("=== AUTOMÁTICO ===");
+            telemetry.addData("Status", "Tag Detectada");
+            telemetry.addData("Tx", tx);
+
+        } else {
+
+            telemetry.addLine("=== AUTOMÁTICO ===");
+            telemetry.addData("Status", "Tag Perdida");
+
+            // Lógica de busca (gira na última direção vista)
+            switch (lastSeen) {
+
+                case LEFT:
+                    baseShooter.setPower(SEARCH_SPEED);
+                    telemetry.addData("Buscando", "Esquerda");
+                    break;
+
+                case RIGHT:
+                    baseShooter.setPower(-SEARCH_SPEED);
+                    telemetry.addData("Buscando", "Direita");
+                    break;
+
+                case NONE:
+                    baseShooter.setPower(SEARCH_SPEED);
+                    telemetry.addData("Buscando", "Padrão");
+                    break;
+            }
+        }
+    }
+
+    private void ligarShooter(){
+
+        String statusShooter = "SHOOTER: DESLIGADO";
+
+        // CLIQUE NO RB (GAMEPAD 2)
+        boolean A_Press_G2 = gamepad2.a;
+
+        if (A_Press_G2 && !A_PressUltEst_G2){
+            shooterLigado = !shooterLigado; // SWITCH LIGA/DESLIGA
+        }
+        A_PressUltEst_G2 = A_Press_G2;
+
+        // ALTERNAR ENTRE VELOCIDADES NO LB (GAMEPAD 2)
+        boolean X_Press_G2 = gamepad2.x;
+
+        if (X_Press_G2 && !X_PressUltEst_G2) {
+
+            indiceVel = indiceVel + 1;
+
+            if (indiceVel >= velShooter.length){
+                indiceVel = 0;
+            }
+        }
+        X_PressUltEst_G2 = X_Press_G2;
+
+        // DEFININDO POTÊNCIAS DO SHOOTER
+        if (shooterLigado) {
+            shooter.setPower(velShooter[indiceVel]);
+            statusShooter = "SHOOTER: LIGADO | VELOCIDADE: " + velShooter[indiceVel];
+
+            if (gamepad2.y){
+                alavanca.setPosition(0.66);
+            }
+        } else {
+            shooter.setPower(0);
+            statusShooter = "SHOOTER: DESLIGADO";
+        }
+
+        telemetry.addLine(statusShooter);
+    }
+}

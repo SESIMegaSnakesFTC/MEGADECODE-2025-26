@@ -2,10 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.CRServo;
-
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.limelightvision.LLResult;
 
@@ -15,9 +12,6 @@ public class limelightOficialVERMELHO extends OpMode {
     private Limelight3A limelight;
     private DcMotor baseShooter;
     private DcMotor shooter;
-
-    private CRServo servoE;   // Servo contínuo
-    private CRServo servoD;   // Servo contínuo
 
     private enum LastSeenDirection {LEFT, RIGHT, NONE}
 
@@ -38,18 +32,11 @@ public class limelightOficialVERMELHO extends OpMode {
         baseShooter = hardwareMap.get(DcMotor.class, "baseShooter");
         shooter = hardwareMap.get(DcMotor.class, "shooter");
 
-        servoE = hardwareMap.get(CRServo.class, "servoE"); // contínuo
-        servoD = hardwareMap.get(CRServo.class, "servoD"); // contínuo invertido
-
         baseShooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         limelight.start();
         limelight.pipelineSwitch(0); // VERMELHO
-
-        // Reset inicial — ambos parados
-        servoE.setPower(0);
-        servoD.setPower(0);
     }
 
     @Override
@@ -77,8 +64,6 @@ public class limelightOficialVERMELHO extends OpMode {
 
         // Telemetria
         telemetry.addData("Modo", modoAutomatico ? "AUTOMÁTICO" : "MANUAL");
-        telemetry.addData("ServoE Power", servoE.getPower());
-        telemetry.addData("ServoD Power", servoD.getPower());
         telemetry.addData("Shooter", shooterLigado ? "LIGADO" : "DESLIGADO");
         telemetry.update();
     }
@@ -93,13 +78,6 @@ public class limelightOficialVERMELHO extends OpMode {
         baseShooter.setPower(gamepad1.left_stick_x * 0.35);
 
         double stickY = -gamepad1.right_stick_y;  // Para cima = positivo
-
-        // Dois servos contínuos trabalhando juntos
-        // Servo E normal
-        servoE.setPower(stickY);
-
-        // Servo D invertido
-        servoD.setPower(-stickY);
     }
 
     // =====================================================
