@@ -13,11 +13,11 @@ import com.qualcomm.hardware.limelightvision.LLResult;
 public class limelightOficialVERMELHO extends OpMode {
 
     private Limelight3A limelight;
-    private DcMotor motor;
-    private DcMotor motorExtra;
+    private DcMotor baseShooter;
+    private DcMotor shooter;
 
-    private CRServo servoE;
-    private CRServo servoD;
+    private CRServo servoE;   // Servo contínuo
+    private CRServo servoD;   // Servo contínuo
 
     private enum LastSeenDirection {LEFT, RIGHT, NONE}
 
@@ -25,7 +25,7 @@ public class limelightOficialVERMELHO extends OpMode {
     private boolean modoAutomatico = false;
     private boolean lastTriggerPressed = false;
 
-    private boolean motorExtraLigado = false;
+    private boolean shooterLigado = false;
     private boolean ultimoA = false;
 
     private static final double KP = 0.02;
@@ -35,108 +35,118 @@ public class limelightOficialVERMELHO extends OpMode {
     public void init() {
 
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        motor = hardwareMap.get(DcMotor.class, "motor");
-        motorExtra = hardwareMap.get(DcMotor.class, "motorExtra");
-        servoE = hardwareMap.get(CRServo.class, "servoE");
-        servoD = hardwareMap.get(CRServo.class, "servoD");
+        baseShooter = hardwareMap.get(DcMotor.class, "baseShooter");
+        shooter = hardwareMap.get(DcMotor.class, "shooter");
 
-        motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        motorExtra.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        servoE = hardwareMap.get(CRServo.class, "servoE"); // contínuo
+        servoD = hardwareMap.get(CRServo.class, "servoD"); // contínuo invertido
+
+        baseShooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         limelight.start();
         limelight.pipelineSwitch(0); // VERMELHO
+
+        // Reset inicial — ambos parados
+        servoE.setPower(0);
+        servoD.setPower(0);
     }
 
     @Override
     public void loop() {
 
+        // Alternar modo automático
         boolean rtPressed = gamepad1.right_trigger > 0.8;
         if (rtPressed && !lastTriggerPressed) {
             modoAutomatico = !modoAutomatico;
         }
         lastTriggerPressed = rtPressed;
 
-        double stickY = -gamepad1.left_stick_y;
-        double manualSpeedLimit = 0.5;
-        double manualPower = gamepad1.left_stick_x * manualSpeedLimit;
-
-        servoE.setPower(manualPower);
-        servoD.setPower(-manualPower);
-
+        // Alternar shooter
         boolean botaoA = gamepad1.a;
-        if (gamepad1.a && !ultimoA) {
-            motorExtraLigado = !motorExtraLigado; // alterna estado
+        if (botaoA && !ultimoA) {
+            shooterLigado = !shooterLigado;
         }
         ultimoA = botaoA;
 
-        motorExtra.setPower(motorExtraLigado ? 1.0 : 0.0);
+        shooter.setPower(shooterLigado ? 1.0 : 0.0);
 
-        // ====== Seleciona modo de operação ======
-        if (modoAutomatico) {
-            runAutomaticMode();
-        } else {
-            runManualMode();
-        }
+        // Executa modo
+        if (modoAutomatico) runAutomaticMode();
+        else runManualMode();
 
-        // ====== Telemetria resumida ======
+        // Telemetria
         telemetry.addData("Modo", modoAutomatico ? "AUTOMÁTICO" : "MANUAL");
-        telemetry.addData("RT pressionado", rtPressed);
-        telemetry.addData("CRServo1 Power", "%.3f", servoE.getPower());
-        telemetry.addData("CRServo2 Power", "%.3f", servoD.getPower());
-        telemetry.addData("MotorExtra", motorExtraLigado ? "LIGADO" : "DESLIGADO");
+        telemetry.addData("ServoE Power", servoE.getPower());
+        telemetry.addData("ServoD Power", servoD.getPower());
+        telemetry.addData("Shooter", shooterLigado ? "LIGADO" : "DESLIGADO");
         telemetry.update();
     }
+
+    // =====================================================
+    // ===============     MODO MANUAL      ================
+    // =====================================================
+
     private void runManualMode() {
-        //Modo manual
-        motor.setPower(gamepad1.left_stick_x * 0.4);
+
+        // Movimento horizontal
+        baseShooter.setPower(gamepad1.left_stick_x * 0.35);
+
+        double stickY = -gamepad1.right_stick_y;  // Para cima = positivo
+
+        // Dois servos contínuos trabalhando juntos
+        // Servo E normal
+        servoE.setPower(stickY);
+
+        // Servo D invertido
+        servoD.setPower(-stickY);
     }
 
+    // =====================================================
+    // ===============   MODO AUTOMÁTICO    ================
+    // =====================================================
+
     private void runAutomaticMode() {
-        //Modo automático
+
         LLResult result = limelight.getLatestResult();
 
         if (result != null && result.isValid()) {
 
-            //Limelight de ponta cabeça
             double rawTx = result.getTx();
-            double rawTy = result.getTy();
             double tx = -rawTx;
-            double ty = -rawTy;
 
             if (tx > 0) lastSeen = LastSeenDirection.RIGHT;
             else if (tx < 0) lastSeen = LastSeenDirection.LEFT;
 
-            // PID
             double correction = tx * KP;
-            if (correction > 0.4) correction = 0.4;
-            if (correction < -0.4) correction = -0.4;
+            correction = Math.max(-0.4, Math.min(0.4, correction));
 
-            motor.setPower(correction);
+            baseShooter.setPower(correction);
 
-            telemetry.addLine("=== MODO AUTOMÁTICO ===");
+            telemetry.addLine("=== AUTOMÁTICO ===");
             telemetry.addData("Status", "Tag Detectada");
-            telemetry.addData("Tx (corrigido)", "%.3f", tx);
-            telemetry.addData("Ty (corrigido)", "%.3f", ty);
-            telemetry.addData("Correção Motor", "%.3f", correction);
-            telemetry.addData("Última direção", lastSeen.toString());
+            telemetry.addData("Tx", tx);
 
         } else {
-            telemetry.addLine("=== MODO AUTOMÁTICO ===");
+
+            telemetry.addLine("=== AUTOMÁTICO ===");
             telemetry.addData("Status", "Tag Perdida");
 
-            // Busca baseada na última direção conhecida
             switch (lastSeen) {
+
                 case LEFT:
-                    motor.setPower(SEARCH_SPEED);
+                    baseShooter.setPower(SEARCH_SPEED);
                     telemetry.addData("Buscando", "Esquerda");
                     break;
+
                 case RIGHT:
-                    motor.setPower(-SEARCH_SPEED);
+                    baseShooter.setPower(-SEARCH_SPEED);
                     telemetry.addData("Buscando", "Direita");
                     break;
+
                 case NONE:
-                    motor.setPower(SEARCH_SPEED);
-                    telemetry.addData("Buscando", "Padrão (direita)");
+                    baseShooter.setPower(SEARCH_SPEED);
+                    telemetry.addData("Buscando", "Padrão");
                     break;
             }
         }

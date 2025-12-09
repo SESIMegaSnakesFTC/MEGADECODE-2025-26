@@ -1,19 +1,12 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+//import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
-
-// IMPORTS DO PEDRO PATHING
-import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
-import com.pedropathing.geometry.BezierLine;
-
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @TeleOp(name="Teleoperado Vermelho")
 public class teleopVermelho extends LinearOpMode
@@ -37,198 +30,114 @@ public class teleopVermelho extends LinearOpMode
 
     // CONSTANTES DE CONTROLE
     public double velocidade = 1.0;
+    public boolean rbPressionadoUltimoEstado = false;
+    public boolean lbPressionadoUltimoEstado = false;
 
-    // VARIÁVEIS DE CONTROLE
-    // VELOCIDADE CHASSI
-    public boolean rbPressUltEst_G1 = false;
-    public boolean lbPressUltEst_G1 = false;
-
-    // SHOOTER
-    boolean shooterLigado = false;
-    public boolean rbPressUltEst_G2 = false;
-    public boolean lbPressUltEst_G2 = false;
-    double[] velShooter = {1.0, 0.8, 0.6, 0.4};
-    int indiceVel = 0;
-
-    // --- PEDRO PATHING ---
-    private Follower follower;
-
-    // Variáveis fixas de posição
-    private final double shootX = 96;
-    private final double shootY = 95;
-    private final double goalX = 126;
-    private final double goalY = 131;
-
-    // Variável do cálculo
-    double DistanciaPosShootPosGoal = 0;
 
     @Override
-    public void runOpMode() {
-
+    public void runOpMode()
+    {
         telemetry.addData("Status: ", "Iniciando...");
         telemetry.update();
 
-        //Iniciar hardwares
+        //Iniciar o hardware
         initconfigH();
 
         telemetry.addData("Status: ", "INICIADO, #GOMEGA");
         telemetry.update();
 
-        // --- INICIALIZAÇÃO DO SEGUIDOR PEDRO PATHING ---
-        follower = Constants.createFollower(hardwareMap);
-
-        // Espera até começar
+        //Espera até começar
         waitForStart();
         resetRuntime();
 
-        while (opModeIsActive()) {
-
+        while (opModeIsActive())
+        {
             driveMecanum();
-            controleFeeder();
-            ligarShooter();
-
-            // Quando o botão X é pressionado no gamepad1:
-            if (gamepad1.x) {
-
-                // --- POSE ATUAL DO ROBÔ ---
-                Pose poseAtual = follower.getPose();
-
-                // --- CRIAÇÃO DO CAMINHO PARA A POSIÇÃO DE SHOOT ---
-                PathChain caminho = follower.pathBuilder()
-                        .addPath(new BezierLine(
-                                new com.pedropathing.geometry.Pose(
-                                        poseAtual.getX(),
-                                        poseAtual.getY(),
-                                        poseAtual.getHeading()
-                                ),
-                                new com.pedropathing.geometry.Pose(
-                                        shootX,
-                                        shootY,
-                                        poseAtual.getHeading()
-                                )
-                        ))
-                        .setLinearHeadingInterpolation(
-                                poseAtual.getHeading(),
-                                poseAtual.getHeading()
-                        )
-                        .build();
-
-                // --- EXECUTA CAMINHO ---
-                follower.followPath(caminho, false);
-
-                // --- TRIGONOMETRIA PARA CALCULAR A DISTÂNCIA ENTRE SHOOT E GOAL ---
-                double catetoX = goalX - shootX;
-                double catetoY = goalY - shootY;
-
-                DistanciaPosShootPosGoal = Math.sqrt(catetoX * catetoX + catetoY * catetoY);
-            }
-
-            // Atualiza o seguidor SEM parar o teleop
-            follower.update();
+            feederControl();
 
             // TELEMETRIA
             telemetry.addData("Velocidade movimento atual", "%.3f", velocidade);
-            telemetry.addData("Distância Shoot → Goal", DistanciaPosShootPosGoal);
             telemetry.update();
         }
-
     }
 
-    // =========== CONFIGS HARDWARE ============
-    private void initconfigH() {
+    private void initconfigH()
+    {
         // INICIANDO MOTORES DE MOVIMENTO
-        leftFront  = hardwareMap.get(DcMotorEx.class, "leftFront");   // correto
-        leftBack   = hardwareMap.get(DcMotorEx.class, "rightFront");  // dpad_down -> rightFront girou
-        rightFront = hardwareMap.get(DcMotorEx.class, "leftBack");    // dpad_right -> leftBack girou
-        rightBack  = hardwareMap.get(DcMotorEx.class, "rightBack");   // correto
-
+        leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
+        leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
+        rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
+        rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
 
         // INICIANDO MOTORES E SERVOS MECANINSMOS
         feeder = hardwareMap.get(DcMotor.class, "feeder");
         shooter = hardwareMap.get(DcMotor.class, "shooter");
         baseShooter = hardwareMap.get(DcMotorEx.class, "baseShooter");
 
-        // APLICA DIREÇÃO COM BASE NOS BOOLEANS
-        leftFront.setDirection(DcMotor.Direction.REVERSE);
-        leftBack.setDirection(DcMotor.Direction.FORWARD);
+        // DIREÇÃO MOTORES MOVIMENTO
+        leftFront.setDirection(DcMotorEx.Direction.REVERSE);
+        leftBack.setDirection(DcMotorEx.Direction.REVERSE);
+        rightFront.setDirection(DcMotorEx.Direction.FORWARD);
+        rightBack.setDirection(DcMotorEx.Direction.FORWARD);
 
-        rightFront.setDirection(DcMotor.Direction.REVERSE);
-        rightBack.setDirection(DcMotor.Direction.FORWARD);
-
-
-        // DIREÇÃO MOTORES MECANISMOS (mantive suas escolhas)
+        // DIREÇÃO MOTORES MECANISMOS
         feeder.setDirection(DcMotor.Direction.REVERSE);
         shooter.setDirection(DcMotor.Direction.REVERSE);
-        baseShooter.setDirection(DcMotorEx.Direction.FORWARD);
 
         // COMPORTAMENTO DOS MOTORES
-        // CHASSI E BASE SHOOTER - FREIO DE MÃO
+        // CHASSI E VIPER FREIO DE MÃO
         leftFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         leftBack.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         rightFront.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         rightBack.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        baseShooter.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
-        // FEEDER E SHOOTER (mantenho FLOAT como antes)
-        feeder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        // FEEDER E SHOOTER
         shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        feeder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        // RUN MODES
-        // Recomendo RUN_USING_ENCODER para chassi — melhora resposta e frenagem
-        leftFront.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        leftBack.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        rightFront.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        rightBack.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-
-        // FEEDER E SHOOTER continuam sem encoder (se for o caso)
+        // ENCODER MOTORES
+        leftFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        leftBack.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        rightFront.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        rightBack.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         feeder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-        // BASE SHOOTER com encoder para usar RUN_TO_POSITION se precisar
-        baseShooter.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
     }
 
-
     private void driveMecanum() {
+        double ft = gamepad1.left_stick_y; // MOVIMENTO FRETE E TRÁS
+        double lateral = -gamepad1.left_stick_x; // MOVIMENTO LATERAL
+        double giro = -gamepad1.right_stick_x; // MOVIMENTO DE GIRO
 
-        double ft = -gamepad1.left_stick_y; // MOVIMENTO FRENTE E TRÁS
-        double lateral = gamepad1.left_stick_x; // MOVIMENTO LATERAL
-        double giro = gamepad1.right_stick_x; // MOVIMENTO DE GIRO
+        // Controles RB e LB para velocidade
+        boolean rbPressionado = gamepad1.right_bumper;
+        boolean lbPressionado = gamepad1.left_bumper;
 
-        // ZONA MORTA – impede valores minúsculos que desativam o BRAKE
-        if (Math.abs(ft) < 0.05) ft = 0;
-        if (Math.abs(lateral) < 0.05) lateral = 0;
-        if (Math.abs(giro) < 0.05) giro = 0;
-
-        // CONTROLES RB E LB PARA VELOCIDADE
-        boolean rbPress_G1 = gamepad1.right_bumper;
-        boolean lbPress_G1 = gamepad1.left_bumper;
-
-        // RB DIMINUI A VELOCIDADE
-        if (rbPress_G1 && !rbPressUltEst_G1) {
+        // RB - Diminui a velocidade
+        if (rbPressionado && !rbPressionadoUltimoEstado){
             if (velocidade > 0.125) {
                 velocidade = velocidade / 2;
 
-                // GARANTIR QUE NÃO PASSE DE 0.125
+                // Garantir que não passe de 0.125
                 if (velocidade < 0.125) {
                     velocidade = 0.125;
                 }
             }
         }
-        rbPressUltEst_G1 = rbPress_G1;
+        rbPressionadoUltimoEstado = rbPressionado;
 
-        // LB AUMENTA A VELOCIDADE
-        if (lbPress_G1 && !lbPressUltEst_G1) {
-            if (velocidade < 1.0) {
+        // LB - Aumenta a velocidade
+        if (lbPressionado && !lbPressionadoUltimoEstado) {
+            if (velocidade < 1.0){
                 velocidade = velocidade * 2;
 
-                // GARANTIR QUE NÃO PASSE DE 1
+                // Garantir que não passe de 1
                 if (velocidade > 1.0){
                     velocidade = 1.0;
                 }
             }
         }
-        lbPressUltEst_G1 = lbPress_G1;
+        lbPressionadoUltimoEstado = lbPressionado;
 
         double frontLeftPower  = (ft + lateral + giro) * velocidade;
         double frontRightPower = (ft - lateral - giro) * velocidade;
@@ -253,17 +162,15 @@ public class teleopVermelho extends LinearOpMode
         rightBack.setPower(backRightPower);
     }
 
-    // ============== FEEDER ======================
-    // ============= GAMEPAD 2 ================
-    private void controleFeeder() {
+    private void feederControl() {
 
         String statusFeeder = "FEEDER: Desligado";
 
-        if (gamepad2.a) {
+        if (gamepad2.right_bumper) {
             feeder.setPower(1); //usar 0.8
             statusFeeder = "FEEDER: Coletando";
         }
-        else if (gamepad2.y) {
+        else if (gamepad2.left_bumper) {
             feeder.setPower(-1); //usar 0.8
             statusFeeder = "FEEDER: Retirando";
         }
@@ -273,43 +180,5 @@ public class teleopVermelho extends LinearOpMode
 
         telemetry.addLine(statusFeeder);
     }
-
-    private void ligarShooter(){
-
-        String statusShooter = "SHOOTER: DESLIGADO";
-
-        // CLIQUE NO RB
-        boolean rbPress_G2 = gamepad2.right_bumper;
-
-        if (rbPress_G2 && !rbPressUltEst_G2){
-            shooterLigado = !shooterLigado; // SWITCH LIGA/DESLIGA
-        }
-        rbPressUltEst_G2 = rbPress_G2;
-
-        // ALTERNAR ENTRE VELOCIDADES NO LB
-        boolean lbPress_G2 = gamepad2.left_bumper;
-
-        if (lbPress_G2 && !lbPressUltEst_G2) {
-
-            indiceVel = indiceVel + 1;
-
-            if (indiceVel >= velShooter.length){
-                indiceVel = 0;
-            }
-        }
-        lbPressUltEst_G2 = lbPress_G2;
-
-        // DEFININDO POTÊNCIAS DO SHOOTER
-        if (shooterLigado) {
-            shooter.setPower(velShooter[indiceVel]);
-            statusShooter = "SHOOTER: LIGADO | VELOCIDADE: " + velShooter[indiceVel];
-        } else {
-            shooter.setPower(0);
-            statusShooter = "SHOOTER: DESLIGADO";
-        }
-
-        telemetry.addLine(statusShooter);
-    }
-
-    //private void
 }
+
