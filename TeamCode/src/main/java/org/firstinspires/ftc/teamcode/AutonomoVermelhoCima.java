@@ -71,7 +71,7 @@ public class AutonomoVermelhoCima extends OpMode {
                             new Pose(90, 89.5)
                     ))
                     .setLinearHeadingInterpolation(
-                            Math.toRadians(43),
+                            Math.toRadians(126),
                             Math.toRadians(0))
                     .build();
 
@@ -160,7 +160,9 @@ public class AutonomoVermelhoCima extends OpMode {
         pathState = PathState.INICIAR_PREPARO; // COMEÇA PREPARANDO
 
         follower.setPose(
-                new Pose(124.155, 123.187, Math.toRadians(37))
+                new Pose(124.155,
+                        123.187,
+                        Math.toRadians(126))
         );
     }
 

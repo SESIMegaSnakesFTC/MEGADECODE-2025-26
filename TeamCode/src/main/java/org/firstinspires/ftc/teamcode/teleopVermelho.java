@@ -7,7 +7,9 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 @TeleOp(name="Teleoperado Vermelho")
 public class teleopVermelho extends LinearOpMode
@@ -43,8 +45,8 @@ public class teleopVermelho extends LinearOpMode
     private LastSeenDirection lastSeen = LastSeenDirection.NONE;
     private boolean modoAutomatico = false;
     private boolean lastTriggerPressed = false;
-    private static final double KP = 0.0095;
-    private static final double SEARCH_SPEED = 0.35;
+    private static final double KP = 0.02;
+    private static final double SEARCH_SPEED = 0.5;
 
 
     @Override
@@ -65,10 +67,13 @@ public class teleopVermelho extends LinearOpMode
 
         while (opModeIsActive())
         {
+            gamepad1.setLedColor(0,128,0, Gamepad.LED_DURATION_CONTINUOUS);
+            gamepad2.setLedColor(0,128,0, Gamepad.LED_DURATION_CONTINUOUS);
+
             // 1. CHASSI MECANUM (Gamepad 1)
             driveMecanum();
 
-            // 2. FEEDER (Gamepad 1)
+            // 2. FEEDER (Gamepad 2)
             feederControl();
 
             // 3. SHOOTER MANUAL (Gamepad 2)
@@ -206,15 +211,12 @@ public class teleopVermelho extends LinearOpMode
 
         String statusFeeder = "FEEDER: Desligado";
 
-        // Convertendo triggers (float) em boolean com threshold
-        boolean gatilhoDireito = gamepad1.right_trigger > 0.2;
-        boolean gatilhoEsquerdo = gamepad1.left_trigger > 0.2;
-
-        if (gatilhoDireito) {
+        // MANTIDO NO GAMEPAD 2
+        if (gamepad2.right_bumper) {
             feeder.setPower(1);
             statusFeeder = "FEEDER: Coletando";
         }
-        else if (gatilhoEsquerdo) {
+        else if (gamepad2.left_bumper) {
             feeder.setPower(-1);
             statusFeeder = "FEEDER: Retirando";
         }
@@ -224,7 +226,6 @@ public class teleopVermelho extends LinearOpMode
 
         telemetry.addLine(statusFeeder);
     }
-
 
 
     // ============ GAMEPAD 2 ============
@@ -267,7 +268,7 @@ public class teleopVermelho extends LinearOpMode
             // Cálculo da correção PID (Proporcional)
             double correction = tx * KP;
             // Limita a velocidade máxima de correção
-            correction = Math.max(-0.4, Math.min(0.4, correction));
+            correction = Math.max(-0.45, Math.min(0.45, correction));
 
             baseShooter.setPower(correction);
 
@@ -333,6 +334,9 @@ public class teleopVermelho extends LinearOpMode
 
             if (gamepad2.dpad_up){
                 alavanca.setPosition(0.56);
+            }
+            if (gamepad2.dpad_down){
+                alavanca.setPosition(0);
             }
         } else {
             alavanca.setPosition(0);
