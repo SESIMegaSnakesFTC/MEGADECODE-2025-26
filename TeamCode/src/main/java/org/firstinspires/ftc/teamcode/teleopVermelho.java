@@ -68,7 +68,7 @@ public class teleopVermelho extends LinearOpMode
             // 1. CHASSI MECANUM (Gamepad 1)
             driveMecanum();
 
-            // 2. FEEDER (Gamepad 2)
+            // 2. FEEDER (Gamepad 1)
             feederControl();
 
             // 3. SHOOTER MANUAL (Gamepad 2)
@@ -206,12 +206,15 @@ public class teleopVermelho extends LinearOpMode
 
         String statusFeeder = "FEEDER: Desligado";
 
-        // MANTIDO NO GAMEPAD 2
-        if (gamepad2.right_bumper) {
+        // Convertendo triggers (float) em boolean com threshold
+        boolean gatilhoDireito = gamepad1.right_trigger > 0.2;
+        boolean gatilhoEsquerdo = gamepad1.left_trigger > 0.2;
+
+        if (gatilhoDireito) {
             feeder.setPower(1);
             statusFeeder = "FEEDER: Coletando";
         }
-        else if (gamepad2.left_bumper) {
+        else if (gatilhoEsquerdo) {
             feeder.setPower(-1);
             statusFeeder = "FEEDER: Retirando";
         }
@@ -221,6 +224,7 @@ public class teleopVermelho extends LinearOpMode
 
         telemetry.addLine(statusFeeder);
     }
+
 
 
     // ============ GAMEPAD 2 ============
