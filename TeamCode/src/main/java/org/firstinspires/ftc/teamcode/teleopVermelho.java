@@ -249,7 +249,7 @@ public class teleopVermelho extends LinearOpMode
     // ============ GAMEPAD 2 ============
     // =========== MODO MANUAL ===========
     private void runManualMode() {
-        baseShooter.setPower(gamepad2.left_stick_x * 0.35);
+        baseShooter.setPower(gamepad2.left_stick_x * 0.5);
     }
 
     // =========== MODO AUTOMÁTICO ===========

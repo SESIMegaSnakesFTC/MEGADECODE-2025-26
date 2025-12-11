@@ -5,49 +5,41 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-// IMPORTAÇÃO DA NOVA LÓGICA
-import org.firstinspires.ftc.teamcode.shootLogica_AUTO;
-
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Autonomous(name = "VERMELHO CIMA")
 public class AutonomoVermelhoCima extends OpMode {
-
-    private DcMotorEx feeder; // ESTE É O MOTOR ÚNICO: Coleta E Transporte
+    private DcMotorEx feeder;
     private Follower follower;
     private Paths paths;
     private Timer pathTimer;
 
-    // INSTANCIA DA LÓGICA DO LANÇADOR
-    private shootLogica_AUTO lancador = new shootLogica_AUTO();
-
-    // VARIÁVEIS DE CONTROL
-    private ElapsedTime cicloFeederTimer = new ElapsedTime();
-    private final double TEMPO_TRANSPORTE = 0.4; // TEMPO FEEDER EMPURRANDO BOLINHA
-    private final double VELOCIDADE_COLETA = -1.0;
-    private final double VELOCIDADE_TRANSPORTE = -1.0;
+    // Constantes de tempo (em segundos)
+    private static final double TEMPO_FEED_MEIO = 2.0; // Tempo total do FEEDMEIO
+    private static final double TEMPO_FEED_CIMA = 2.0; // Tempo total do FEEDCIMA
+    private static final double DELAY_APOS_FEED = 0.5; // Tempo que o feeder fica ligado após o movimento
+    private static final double ESPERA_SHOOT = 4.0; // Tempo de espera nos caminhos de shoot
 
     public enum PathState {
-
-        // ESTADOS DE PREPARAR
-        INICIAR_PREPARO,
-        SHOOT_WAIT_RPM,
-        SHOOT_WAIT_TRANSPORTE_DONE,
-
-        // ESTADOS DOS CAMINHOS
-        DESCER_SHOOT1,
-        AJUSTE_FEED_MEIO,
-        FEED_MEIO,
-        AJUSTE_VOLTA,
-        VOLTA_SHOOT2,
-        AJUSTE_FEED_CIMA,
-        FEED_CIMA,
-        VOLTA_SHOOT3,
+        DESCERSHOOT1,
+        ESPERA_SHOOT1,
+        AJUSTEFEEDMEIO,
+        FEEDMEIO_INICIAR,
+        FEEDMEIO_EM_ANDAMENTO,
+        FEEDMEIO_FINALIZAR,
+        AJUSTEVOLTA,
+        VOLTASHOOT2,
+        ESPERA_SHOOT2,
+        AJUSTEFEEDCIMA,
+        FEEDCIMA_INICIAR,
+        FEEDCIMA_EM_ANDAMENTO,
+        FEEDCIMA_FINALIZAR,
+        VOLTASHOOT3,
+        ESPERA_SHOOT3,
         DONE
     }
 
@@ -64,7 +56,6 @@ public class AutonomoVermelhoCima extends OpMode {
         public PathChain VOLTASHOOT3;
 
         public Paths(Follower follower) {
-            // ... (Seus BezierLines inalterados) ...
             DESCERSHOOT1 = follower.pathBuilder()
                     .addPath(new BezierLine(
                             new Pose(124.155, 123.187),
@@ -149,15 +140,17 @@ public class AutonomoVermelhoCima extends OpMode {
 
     @Override
     public void init() {
-
         feeder = hardwareMap.get(DcMotorEx.class, "feeder");
-        lancador.init(hardwareMap); // INICIALIZA A LÓGICA DO LANÇADOR
+
+        // Configura o feeder
+        feeder.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
+        feeder.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         follower = Constants.createFollower(hardwareMap);
         paths = new Paths(follower);
 
         pathTimer = new Timer();
-        pathState = PathState.INICIAR_PREPARO; // COMEÇA PREPARANDO
+        pathState = PathState.DESCERSHOOT1;
 
         follower.setPose(
                 new Pose(124.155,
@@ -171,176 +164,179 @@ public class AutonomoVermelhoCima extends OpMode {
         pathTimer.resetTimer();
     }
 
-    // NOVO METODO: Função simulada para calcular RPM (você deve implementar a leitura de encoder real)
-    private double calcularRpmShooter() {
-        // Se o motor for DcMotorEx, use encoder:
-        // double encoderTicksPerRevolution = 28; // Exemplo para motor Yellow Jacket 5202
-        // return (feeder.getVelocity() * 60) / encoderTicksPerRevolution;
-
-        // Simulação: Se o lançador estiver ocupado, assume que o RPM está perto do alvo
-        if (lancador.isBusy()) {
-            return 1100.0;
-        }
-        return 0.0;
-    }
-
     private void setPathState(PathState newState) {
         pathState = newState;
         pathTimer.resetTimer();
-        feeder.setPower(0); // Garante que o feeder para ao mudar de estado
     }
 
     private void statePathUpdate() {
-
-        // Se a flywheel estiver na fase ATIRANDO_ALAVANCA, o Autônomo não deve interferir no motor feeder
-        if (lancador.getEstadoShooter() == shootLogica_AUTO.EstadoShooter.ATIRANDO_ALAVANCA) {
-            // O update() do lancador cuidará do servo e do fim do ciclo
-            return;
-        }
-
         switch (pathState) {
-
-            case INICIAR_PREPARO:
-                // Liga lançamento de 3 bolinhas
-                lancador.atirarBolinhas(3);
-
-                // O processo de PREPARANDO_RPM começará no loop()
-                setPathState(PathState.DESCER_SHOOT1);
-                break;
-
-            case DESCER_SHOOT1:
-                // FLYWHEEL LIGADA E CARREGANDO DURANTE O CAMINHO
-                follower.setMaxPower(1);
+            case DESCERSHOOT1:
+                follower.setMaxPower(1.0);
                 follower.followPath(paths.DESCERSHOOT1, true);
-
-                setPathState(PathState.AJUSTE_FEED_MEIO);
+                setPathState(PathState.ESPERA_SHOOT1);
                 break;
 
-            case SHOOT_WAIT_RPM:
-                // ESTADO DE SINCRONIZAÇÃO E LANÇAMENTO
+            case ESPERA_SHOOT1:
+                // Espera 4 segundos parado no final do DESCERSHOOT1
+                if (pathTimer.getElapsedTimeSeconds() >= ESPERA_SHOOT) {
+                    setPathState(PathState.AJUSTEFEEDMEIO);
+                }
+                break;
 
-                // 1. O Autônomo espera o RPM ficar pronto
-                if (lancador.isReadyToFeed()) {
-                    // 2. RPM OK. Liga o motor UNICO (feeder) para o TRANSPORTE/SUBIDA
-                    feeder.setPower(VELOCIDADE_TRANSPORTE);
-                    cicloFeederTimer.reset();
-                    setPathState(PathState.SHOOT_WAIT_TRANSPORTE_DONE);
-                } else if (!lancador.isBusy()) {
-                    // Todas as bolinhas atiradas (fim do ciclo)
+            case AJUSTEFEEDMEIO:
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(0.46);
+                    follower.followPath(paths.AJUSTEFEEDMEIO, true);
+                    setPathState(PathState.FEEDMEIO_INICIAR);
+                }
+                break;
+
+            case FEEDMEIO_INICIAR:
+                if (!follower.isBusy()) {
+                    // LIGA O FEEDER
+                    feeder.setPower(-1);
+
+                    // Inicia o movimento com velocidade reduzida
+                    follower.setMaxPower(0.25);
+                    follower.followPath(paths.FEEDMEIO, true);
+
+                    // Marca o tempo de início
+                    setPathState(PathState.FEEDMEIO_EM_ANDAMENTO);
+                }
+                break;
+
+            case FEEDMEIO_EM_ANDAMENTO:
+                // Verifica se o tempo total do movimento já passou
+                if (pathTimer.getElapsedTimeSeconds() >= TEMPO_FEED_MEIO) {
+                    // Para o movimento (se ainda estiver em andamento)
+                    if (follower.isBusy()) {
+                        follower.breakFollowing();
+                    }
+
+                    // Mantém o feeder ligado por mais um tempo
+                    setPathState(PathState.FEEDMEIO_FINALIZAR);
+                }
+                // Se o movimento terminar antes do tempo, também vai para o próximo estado
+                else if (!follower.isBusy()) {
+                    setPathState(PathState.FEEDMEIO_FINALIZAR);
+                }
+                break;
+
+            case FEEDMEIO_FINALIZAR:
+                // Mantém o feeder ligado por um tempo extra
+                if (pathTimer.getElapsedTimeSeconds() >= DELAY_APOS_FEED) {
+                    // DESLIGA O FEEDER
+                    feeder.setPower(0);
+                    setPathState(PathState.AJUSTEVOLTA);
+                }
+                break;
+
+            case AJUSTEVOLTA:
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(0.3);
+                    follower.followPath(paths.AJUSTEVOLTA, true);
+                    setPathState(PathState.VOLTASHOOT2);
+                }
+                break;
+
+            case VOLTASHOOT2:
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(1);
+                    follower.followPath(paths.VOLTASHOOT2, true);
+                    setPathState(PathState.ESPERA_SHOOT2);
+                }
+                break;
+
+            case ESPERA_SHOOT2:
+                // Espera 4 segundos parado no final do VOLTASHOOT2
+                if (pathTimer.getElapsedTimeSeconds() >= ESPERA_SHOOT) {
+                    setPathState(PathState.AJUSTEFEEDCIMA);
+                }
+                break;
+
+            case AJUSTEFEEDCIMA:
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(1);
+                    follower.followPath(paths.AJUSTEFEEDCIMA, true);
+                    setPathState(PathState.FEEDCIMA_INICIAR);
+                }
+                break;
+
+            case FEEDCIMA_INICIAR:
+                if (!follower.isBusy()) {
+                    // LIGA O FEEDER
+                    feeder.setPower(-1);
+
+                    // Inicia o movimento com velocidade reduzida
+                    follower.setMaxPower(0.3);
+                    follower.followPath(paths.FEEDCIMA, true);
+
+                    // Marca o tempo de início
+                    setPathState(PathState.FEEDCIMA_EM_ANDAMENTO);
+                }
+                break;
+
+            case FEEDCIMA_EM_ANDAMENTO:
+                // Verifica se o tempo total do movimento já passou
+                if (pathTimer.getElapsedTimeSeconds() >= TEMPO_FEED_CIMA) {
+                    // Para o movimento (se ainda estiver em andamento)
+                    if (follower.isBusy()) {
+                        follower.breakFollowing();
+                    }
+
+                    // Mantém o feeder ligado por mais um tempo
+                    setPathState(PathState.FEEDCIMA_FINALIZAR);
+                }
+                // Se o movimento terminar antes do tempo, também vai para o próximo estado
+                else if (!follower.isBusy()) {
+                    setPathState(PathState.FEEDCIMA_FINALIZAR);
+                }
+                break;
+
+            case FEEDCIMA_FINALIZAR:
+                // Mantém o feeder ligado por um tempo extra
+                if (pathTimer.getElapsedTimeSeconds() >= DELAY_APOS_FEED) {
+                    // DESLIGA O FEEDER
+                    feeder.setPower(0);
+                    setPathState(PathState.VOLTASHOOT3);
+                }
+                break;
+
+            case VOLTASHOOT3:
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(1);
+                    follower.followPath(paths.VOLTASHOOT3, true);
+                    setPathState(PathState.ESPERA_SHOOT3);
+                }
+                break;
+
+            case ESPERA_SHOOT3:
+                // Espera 4 segundos parado no final do VOLTASHOOT3
+                if (pathTimer.getElapsedTimeSeconds() >= ESPERA_SHOOT) {
                     setPathState(PathState.DONE);
                 }
                 break;
 
-            case SHOOT_WAIT_TRANSPORTE_DONE:
-                // 1. Espera o tempo necessário para empurrar a bolinha (transporte)
-                if (cicloFeederTimer.seconds() >= TEMPO_TRANSPORTE) {
-                    feeder.setPower(0); // DESLIGA O MOTOR DE TRANSPORTE
-                    lancador.feederCycleComplete(); // Informa a lógica que o transporte terminou (incrementa bolinhasAtiradas e vai para RECARREGANDO)
-
-                    // 2. Decide a próxima ação
-                    if (lancador.getBolinhasFaltantes() == 1) {
-                        // Falta apenas a última bolinha (servo/alavanca), então vai para navegação para coletar as últimas
-                        setPathState(PathState.AJUSTE_FEED_MEIO);
-                    } else if (lancador.getBolinhasFaltantes() > 1) {
-                        // Falta mais de uma bolinha (primeiro ou segundo tiro), então volta para rechecar RPM
-                        setPathState(PathState.SHOOT_WAIT_RPM);
-                    } else {
-                        // Não deve acontecer, mas por segurança
-                        setPathState(PathState.DONE);
-                    }
-                }
-                break;
-
-            case AJUSTE_FEED_MEIO:
-                if (!follower.isBusy()) {
-                    follower.setMaxPower(0.46);
-                    follower.followPath(paths.AJUSTEFEEDMEIO, true);
-                    setPathState(PathState.FEED_MEIO);
-                }
-                break;
-
-            case FEED_MEIO:
-                if (!follower.isBusy()) {
-                    feeder.setPower(VELOCIDADE_COLETA); // LIGA O FEEDER (COLETA)
-                    follower.setMaxPower(0.25);
-                    follower.followPath(paths.FEEDMEIO, true);
-                    setPathState(PathState.AJUSTE_VOLTA);
-                }
-                break;
-
-            case AJUSTE_VOLTA:
-                if (!follower.isBusy()) {
-                    feeder.setPower(0); // DESLIGA O FEEDER (COLETA)
-                    follower.setMaxPower(0.3);
-                    follower.followPath(paths.AJUSTEVOLTA, true);
-                    setPathState(PathState.VOLTA_SHOOT2);
-                }
-                break;
-
-            case VOLTA_SHOOT2:
-                if (!follower.isBusy()) {
-                    // FLWHEEL JÁ FOI LIGADA EM INICIAR_PREPARO, MAS GARANTIMOS QUE ELA ESTÁ EM PROCESSO DE CARGA
-                    if (!lancador.isBusy()) { lancador.atirarBolinhas(lancador.getBolinhasFaltantes()); }
-
-                    follower.setMaxPower(1);
-                    follower.followPath(paths.VOLTASHOOT2, true);
-                    setPathState(PathState.SHOOT_WAIT_RPM); // Vai para o estado de tiro (2º tiro da primeira sequência, se aplicável)
-                }
-                break;
-
-            case AJUSTE_FEED_CIMA:
-                if (!follower.isBusy()) {
-                    follower.setMaxPower(1);
-                    follower.followPath(paths.AJUSTEFEEDCIMA, true);
-                    setPathState(PathState.FEED_CIMA);
-                }
-                break;
-
-            case FEED_CIMA:
-                if (!follower.isBusy()) {
-                    feeder.setPower(VELOCIDADE_COLETA); // LIGA O FEEDER (COLETA)
-                    follower.setMaxPower(0.3);
-                    follower.followPath(paths.FEEDCIMA, true);
-                    setPathState(PathState.VOLTA_SHOOT3);
-                }
-                break;
-
-            case VOLTA_SHOOT3:
-                if (!follower.isBusy()) {
-                    feeder.setPower(0); // DESLIGA O FEEDER (COLETA)
-                    // FLWHEEL JÁ FOI LIGADA EM INICIAR_PREPARO, MAS GARANTIMOS QUE ELA ESTÁ EM PROCESSO DE CARGA
-                    if (!lancador.isBusy()) { lancador.atirarBolinhas(lancador.getBolinhasFaltantes()); }
-
-                    follower.setMaxPower(1);
-                    follower.followPath(paths.VOLTASHOOT3, true);
-                    setPathState(PathState.SHOOT_WAIT_RPM); // Vai para o estado de tiro (último tiro)
-                }
-                break;
-
             case DONE:
-                // Garante que tudo para no final
-                lancador.emergencyStop();
+                // Garante que o feeder está desligado
                 feeder.setPower(0);
                 break;
         }
     }
 
-
     @Override
     public void loop() {
-
-        lancador.atualizarVelocidadeShooter(calcularRpmShooter());
-        lancador.update();
-
         follower.update();
         statePathUpdate();
 
-        telemetry.addData("Estado Autônomo", pathState);
-        telemetry.addData("Estado Flywheel", lancador.getEstadoShooter());
-        telemetry.addData("Bolinhas Faltantes", lancador.getBolinhasFaltantes());
+        telemetry.addData("Estado", pathState);
+        telemetry.addData("X", follower.getPose().getX());
+        telemetry.addData("Y", follower.getPose().getY());
+        telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
+        telemetry.addData("Tempo Estado", pathTimer.getElapsedTimeSeconds());
+        telemetry.addData("Busy", follower.isBusy());
         telemetry.addData("Feeder Power", feeder.getPower());
-        telemetry.addData("RPM Atual", calcularRpmShooter());
-
-        telemetry.update();
+        telemetry.addData("Tempo Total", pathTimer.getElapsedTimeSeconds());
     }
 }

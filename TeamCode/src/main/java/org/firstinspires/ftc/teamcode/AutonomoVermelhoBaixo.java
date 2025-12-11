@@ -5,143 +5,144 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
+
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Autonomous(name = "VERMELHO BAIXO")
 public class AutonomoVermelhoBaixo extends OpMode {
-
-    private DcMotor shooter;
-    private DcMotorEx baseShooter;
     private DcMotorEx feeder;
     private Follower follower;
     private Paths paths;
     private Timer pathTimer;
-    private PathState pathState;
 
-    private static final int POSICAO_SHOOT = 300;
-    private static final int TOLERANCIA = 10;
+    // Constantes de tempo (em segundos)
+    private static final double TEMPO_FEED_MEIO = 2.0; // Tempo total do FEEDMEIO
+    private static final double TEMPO_FEED_BAIXO = 2.0; // Tempo total do FEEDBAIXO
+    private static final double DELAY_APOS_FEED = 0.5; // Tempo que o feeder fica ligado após o movimento
+    private static final double ESPERA_SHOOT = 4.0; // Tempo de espera nos caminhos de shoot
 
     public enum PathState {
-
-        RESET_MOTOR,
-        POS_ZERO_BASE,
-        POS_SHOOT_BASE,
-        AJUSTANDO_FEEDING,
-        FEEDING,
-        AJUSTE_EMPURRAR,
-        EMPURRAR,
-        AJUSTE_PAREDE,
-        DESCE_SHOOT_1,
-        FEEDING_BASE,
-        DESCE_SHOOT_2,
+        IDAFRENTEINICIAL,
+        IDALAUNCHZONE1,
+        CAMINHOSHOOT1,
+        ESPERA_SHOOT1,
+        IDAFEEDMEIO,
+        FEEDMEIO_INICIAR,
+        FEEDMEIO_EM_ANDAMENTO,
+        FEEDMEIO_FINALIZAR,
+        AJUSTECAMINHOSHOOT2,
+        CAMINHOSHOOT2,
+        ESPERA_SHOOT2,
+        IDAFEEDBAIXO,
+        FEEDBAIXO_INICIAR,
+        FEEDBAIXO_EM_ANDAMENTO,
+        FEEDBAIXO_FINALIZAR,
+        CAMINHOSHOOT3,
+        ESPERA_SHOOT3,
         DONE
     }
 
+    private PathState pathState;
+
     public static class Paths {
+        public PathChain IDAFRENTEINICIAL;
+        public PathChain IDALAUNCHZONE1;
+        public PathChain CAMINHOSHOOT1;
+        public PathChain IDAFEEDMEIO;
+        public PathChain FEEDMEIO;
+        public PathChain AJUSTECAMINHOSHOOT2;
+        public PathChain CAMINHOSHOOT2;
+        public PathChain IDAFEEDBAIXO;
+        public PathChain FEEDBAIXO;
+        public PathChain CAMINHOSHOOT3;
 
-        private DcMotorEx feeder;
-        public PathChain AJUSTANDOFEEDING;
-        public PathChain FEEDING;
-        public PathChain AJUSTEEMPURRAR;
-        public PathChain EMPURRAR;
-        public PathChain AJUSTEPAREDE;
-        public PathChain DESCESHOOT1;
-        public PathChain FEEDINGBASE;
-        public PathChain DESCESHOOT2;
-
-        public Paths(Follower follower, DcMotorEx feeder) {
-            this.feeder = feeder;
-
-            AJUSTANDOFEEDING = follower.pathBuilder()
+        public Paths(Follower follower) {
+            IDAFRENTEINICIAL = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(56.000, 11.000),
-                            new Pose(40.000, 65.800)
-                    ))
+                            new Pose(56.000, 8.000),
+                            new Pose(56.000, 24.000))
+                    )
+                    .setTangentHeadingInterpolation()
+                    .build();
+
+            IDALAUNCHZONE1 = follower.pathBuilder()
+                    .addPath(new BezierLine(
+                            new Pose(56.000, 24.000),
+                            new Pose(91.300, 90.100))
+                    )
+                    .setTangentHeadingInterpolation()
+                    .build();
+
+            CAMINHOSHOOT1 = follower.pathBuilder()
+                    .addPath(new BezierLine(
+                            new Pose(91.300, 90.100),
+                            new Pose(101.300, 100.100))
+                    )
                     .setLinearHeadingInterpolation(
-                            Math.toRadians(90),
+                            Math.toRadians(126),
                             Math.toRadians(180))
                     .build();
 
-            FEEDING = follower
-                    .pathBuilder()
+            IDAFEEDMEIO = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(40.000, 65.800),
-                            new Pose(7.750, 65.800)
-                    ))
-                    .addTemporalCallback(0.2, () -> feeder.setPower(-1))
+                            new Pose(101.300, 100.100),
+                            new Pose(46.000, 58.000))
+                    )
+                    .setTangentHeadingInterpolation()
+                    .build();
+
+            FEEDMEIO = follower.pathBuilder()
+                    .addPath(new BezierLine(
+                            new Pose(46.000, 58.000),
+                            new Pose(11.000, 60.000))
+                    )
+                    .setTangentHeadingInterpolation()
+                    .build();
+
+            AJUSTECAMINHOSHOOT2 = follower.pathBuilder()
+                    .addPath(new BezierLine(
+                            new Pose(11.000, 60.000),
+                            new Pose(33.000, 60.000))
+                    )
                     .setLinearHeadingInterpolation(
                             Math.toRadians(180),
                             Math.toRadians(180))
                     .build();
 
-            AJUSTEEMPURRAR = follower
-                    .pathBuilder()
+            CAMINHOSHOOT2 = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(7.750, 65.800),
-                            new Pose(23.430, 52.500)
-                    ))
-                    .setLinearHeadingInterpolation(
-                            Math.toRadians(151),
-                            Math.toRadians(151))
-                    .build();
-
-            EMPURRAR = follower
-                    .pathBuilder()
-                    .addPath(new BezierLine(
-                            new Pose(23.430, 52.500),
-                            new Pose(12.343, 17.500)
-                    ))
-                    .setLinearHeadingInterpolation(
-                            Math.toRadians(140),
-                            Math.toRadians(140))
-                    .build();
-
-            AJUSTEPAREDE = follower
-                    .pathBuilder()
-                    .addPath(new BezierLine(
-                            new Pose(12.343, 17.500),
-                            new Pose(12.343, 16.000)
-                    ))
+                            new Pose(33.000, 60.000),
+                            new Pose(101.300, 100.100))
+                    )
                     .setLinearHeadingInterpolation(
                             Math.toRadians(180),
                             Math.toRadians(180))
                     .build();
 
-            DESCESHOOT1 = follower
-                    .pathBuilder()
+            IDAFEEDBAIXO = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(12.343, 16.000),
-                            new Pose(56.000, 16.000)
-                    ))
-                    .setLinearHeadingInterpolation(
-                            Math.toRadians(180),
-                            Math.toRadians(180))
+                            new Pose(101.300, 100.100),
+                            new Pose(46.000, 36.000))
+                    )
+                    .setTangentHeadingInterpolation()
                     .build();
 
-            FEEDINGBASE = follower
-                    .pathBuilder()
+            FEEDBAIXO = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(56.000, 16.000),
-                            new Pose(0.000, 16.000)
-                    ))
-                    .addTemporalCallback(0.5, () -> feeder.setPower(-1))
-                    .setLinearHeadingInterpolation(
-                            Math.toRadians(180),
-                            Math.toRadians(180))
+                            new Pose(46.000, 36.000),
+                            new Pose(11.000, 36.000))
+                    )
+                    .setTangentHeadingInterpolation()
                     .build();
 
-            DESCESHOOT2 = follower
-                    .pathBuilder()
+            CAMINHOSHOOT3 = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(0.000, 16.000),
-                            new Pose(56.000, 16.000)
-                    ))
+                            new Pose(11.000, 36.000),
+                            new Pose(101.300, 100.100))
+                    )
                     .setLinearHeadingInterpolation(
                             Math.toRadians(180),
                             Math.toRadians(180))
@@ -153,23 +154,21 @@ public class AutonomoVermelhoBaixo extends OpMode {
     public void init() {
         feeder = hardwareMap.get(DcMotorEx.class, "feeder");
 
-        shooter = hardwareMap.get(DcMotor.class, "shooter");
-        shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        shooter.setDirection(DcMotorSimple.Direction.REVERSE);
-
-        baseShooter = hardwareMap.get(DcMotorEx.class, "baseShooter");
-        baseShooter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        baseShooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        baseShooter.setDirection(DcMotorSimple.Direction.FORWARD);
+        // Configura o feeder
+        feeder.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
+        feeder.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
         follower = Constants.createFollower(hardwareMap);
-        paths = new Paths(follower, feeder);
+        paths = new Paths(follower);
 
         pathTimer = new Timer();
-        pathState = PathState.RESET_MOTOR;
+        pathState = PathState.IDAFRENTEINICIAL;
 
-        // Posição inicial baseada no primeiro ponto do primeiro caminho
-        follower.setPose(new Pose(56.000, 9.000, Math.toRadians(90)));
+        follower.setPose(
+                new Pose(56.000,
+                        8.000,
+                        Math.toRadians(90))
+        );
     }
 
     @Override
@@ -184,107 +183,171 @@ public class AutonomoVermelhoBaixo extends OpMode {
 
     private void statePathUpdate() {
         switch (pathState) {
-
-            case RESET_MOTOR:
-                // SHOOT EM PRELOAD
-                shooter.setPower(1.0);
-
-                baseShooter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                baseShooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-                setPathState(PathState.POS_ZERO_BASE);
+            case IDAFRENTEINICIAL:
+                follower.setMaxPower(1.0);
+                follower.followPath(paths.IDAFRENTEINICIAL, true);
+                setPathState(PathState.IDALAUNCHZONE1);
                 break;
 
-            case POS_ZERO_BASE:
-                // SHOOT EM PRELOAD
-                shooter.setPower(1.0);
-
-                baseShooter.setTargetPosition(0);
-                baseShooter.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                baseShooter.setPower(0.4);
-
-                setPathState(PathState.POS_SHOOT_BASE);
-                break;
-
-            case POS_SHOOT_BASE:
-                if(Math.abs(baseShooter.getCurrentPosition()) <= TOLERANCIA){
-                    // SHOOT EM PRELOAD
-                    shooter.setPower(1.0);
-
-                    baseShooter.setTargetPosition(POSICAO_SHOOT);
-                    baseShooter.setPower(0.5);
-
-                    setPathState(PathState.AJUSTANDO_FEEDING);
+            case IDALAUNCHZONE1:
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(1.0);
+                    follower.followPath(paths.IDALAUNCHZONE1, true);
+                    setPathState(PathState.CAMINHOSHOOT1);
                 }
                 break;
 
-            case AJUSTANDO_FEEDING:
-                follower.setMaxPower(0.7);
-                follower.followPath(paths.AJUSTANDOFEEDING, true);
-                setPathState(PathState.FEEDING);
-                break;
-
-            case FEEDING:
+            case CAMINHOSHOOT1:
                 if (!follower.isBusy()) {
-                    follower.setMaxPower(0.3);
-                    follower.followPath(paths.FEEDING, true);
-                    setPathState(PathState.AJUSTE_EMPURRAR);
+                    follower.setMaxPower(1.0);
+                    follower.followPath(paths.CAMINHOSHOOT1, true);
+                    setPathState(PathState.ESPERA_SHOOT1);
                 }
                 break;
 
-            case AJUSTE_EMPURRAR:
+            case ESPERA_SHOOT1:
+                // Espera 4 segundos parado no final do CAMINHOSHOOT1
+                if (pathTimer.getElapsedTimeSeconds() >= ESPERA_SHOOT) {
+                    setPathState(PathState.IDAFEEDMEIO);
+                }
+                break;
+
+            case IDAFEEDMEIO:
                 if (!follower.isBusy()) {
+                    follower.setMaxPower(1.0);
+                    follower.followPath(paths.IDAFEEDMEIO, true);
+                    setPathState(PathState.FEEDMEIO_INICIAR);
+                }
+                break;
+
+            case FEEDMEIO_INICIAR:
+                if (!follower.isBusy()) {
+                    // LIGA O FEEDER
+                    feeder.setPower(-1);
+
+                    // Inicia o movimento com velocidade reduzida
                     follower.setMaxPower(0.5);
-                    follower.followPath(paths.AJUSTEEMPURRAR, true);
-                    setPathState(PathState.EMPURRAR);
+                    follower.followPath(paths.FEEDMEIO, true);
+
+                    // Marca o tempo de início
+                    setPathState(PathState.FEEDMEIO_EM_ANDAMENTO);
+                }
+                break;
+
+            case FEEDMEIO_EM_ANDAMENTO:
+                // Verifica se o tempo total do movimento já passou
+                if (pathTimer.getElapsedTimeSeconds() >= TEMPO_FEED_MEIO) {
+                    // Para o movimento (se ainda estiver em andamento)
+                    if (follower.isBusy()) {
+                        follower.breakFollowing();
+                    }
+
+                    // Mantém o feeder ligado por mais um tempo
+                    setPathState(PathState.FEEDMEIO_FINALIZAR);
+                }
+                // Se o movimento terminar antes do tempo, também vai para o próximo estado
+                else if (!follower.isBusy()) {
+                    setPathState(PathState.FEEDMEIO_FINALIZAR);
+                }
+                break;
+
+            case FEEDMEIO_FINALIZAR:
+                // Mantém o feeder ligado por um tempo extra
+                if (pathTimer.getElapsedTimeSeconds() >= DELAY_APOS_FEED) {
+                    // DESLIGA O FEEDER
                     feeder.setPower(0);
+                    setPathState(PathState.AJUSTECAMINHOSHOOT2);
                 }
-
                 break;
 
-            case EMPURRAR:
+            case AJUSTECAMINHOSHOOT2:
                 if (!follower.isBusy()) {
+                    follower.setMaxPower(0.7);
+                    follower.followPath(paths.AJUSTECAMINHOSHOOT2, true);
+                    setPathState(PathState.CAMINHOSHOOT2);
+                }
+                break;
+
+            case CAMINHOSHOOT2:
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(1.0);
+                    follower.followPath(paths.CAMINHOSHOOT2, true);
+                    setPathState(PathState.ESPERA_SHOOT2);
+                }
+                break;
+
+            case ESPERA_SHOOT2:
+                // Espera 4 segundos parado no final do CAMINHOSHOOT2
+                if (pathTimer.getElapsedTimeSeconds() >= ESPERA_SHOOT) {
+                    setPathState(PathState.IDAFEEDBAIXO);
+                }
+                break;
+
+            case IDAFEEDBAIXO:
+                if (!follower.isBusy()) {
+                    follower.setMaxPower(1.0);
+                    follower.followPath(paths.IDAFEEDBAIXO, true);
+                    setPathState(PathState.FEEDBAIXO_INICIAR);
+                }
+                break;
+
+            case FEEDBAIXO_INICIAR:
+                if (!follower.isBusy()) {
+                    // LIGA O FEEDER
+                    feeder.setPower(-1);
+
+                    // Inicia o movimento com velocidade reduzida
                     follower.setMaxPower(0.5);
-                    follower.followPath(paths.EMPURRAR, true);
-                    setPathState(PathState.AJUSTE_PAREDE);
+                    follower.followPath(paths.FEEDBAIXO, true);
+
+                    // Marca o tempo de início
+                    setPathState(PathState.FEEDBAIXO_EM_ANDAMENTO);
                 }
                 break;
 
-            case AJUSTE_PAREDE:
+            case FEEDBAIXO_EM_ANDAMENTO:
+                // Verifica se o tempo total do movimento já passou
+                if (pathTimer.getElapsedTimeSeconds() >= TEMPO_FEED_BAIXO) {
+                    // Para o movimento (se ainda estiver em andamento)
+                    if (follower.isBusy()) {
+                        follower.breakFollowing();
+                    }
+
+                    // Mantém o feeder ligado por mais um tempo
+                    setPathState(PathState.FEEDBAIXO_FINALIZAR);
+                }
+                // Se o movimento terminar antes do tempo, também vai para o próximo estado
+                else if (!follower.isBusy()) {
+                    setPathState(PathState.FEEDBAIXO_FINALIZAR);
+                }
+                break;
+
+            case FEEDBAIXO_FINALIZAR:
+                // Mantém o feeder ligado por um tempo extra
+                if (pathTimer.getElapsedTimeSeconds() >= DELAY_APOS_FEED) {
+                    // DESLIGA O FEEDER
+                    feeder.setPower(0);
+                    setPathState(PathState.CAMINHOSHOOT3);
+                }
+                break;
+
+            case CAMINHOSHOOT3:
                 if (!follower.isBusy()) {
-                    follower.setMaxPower(0.5);
-                    follower.followPath(paths.AJUSTEPAREDE, true);
-                    setPathState(PathState.DESCE_SHOOT_1);
+                    follower.setMaxPower(1.0);
+                    follower.followPath(paths.CAMINHOSHOOT3, true);
+                    setPathState(PathState.ESPERA_SHOOT3);
                 }
                 break;
 
-            case DESCE_SHOOT_1:
-                if (!follower.isBusy() && pathTimer.getElapsedTimeSeconds() > 5) {
-
-                    follower.setMaxPower(1);
-                    follower.followPath(paths.DESCESHOOT1, true);
-                    setPathState(PathState.FEEDING_BASE);
-                }
-                break;
-
-            case FEEDING_BASE:
-                if (!follower.isBusy()) {
-                    follower.setMaxPower(0.6);
-                    follower.followPath(paths.FEEDINGBASE, true);
-                    setPathState(PathState.DESCE_SHOOT_2);
-                }
-                break;
-
-            case DESCE_SHOOT_2:
-                if (!follower.isBusy()) {
-                    follower.setMaxPower(1);
-                    follower.followPath(paths.DESCESHOOT2, true);
+            case ESPERA_SHOOT3:
+                // Espera 4 segundos parado no final do CAMINHOSHOOT3
+                if (pathTimer.getElapsedTimeSeconds() >= ESPERA_SHOOT) {
                     setPathState(PathState.DONE);
                 }
                 break;
 
             case DONE:
-                // Para o feeder quando terminar
+                // Garante que o feeder está desligado
                 feeder.setPower(0);
                 break;
         }
@@ -301,5 +364,7 @@ public class AutonomoVermelhoBaixo extends OpMode {
         telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
         telemetry.addData("Tempo Estado", pathTimer.getElapsedTimeSeconds());
         telemetry.addData("Busy", follower.isBusy());
+        telemetry.addData("Feeder Power", feeder.getPower());
+        telemetry.addData("Tempo Total", pathTimer.getElapsedTimeSeconds());
     }
 }
