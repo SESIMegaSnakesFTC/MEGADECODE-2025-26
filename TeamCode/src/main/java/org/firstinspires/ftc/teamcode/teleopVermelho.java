@@ -114,7 +114,7 @@ public class teleopVermelho extends LinearOpMode
         baseShooter = hardwareMap.get(DcMotorEx.class, "baseShooter");
 
         // INICIANDO SERVOS
-        alavanca = hardwareMap.get(Servo.class, "alavanca");
+        alavanca = hardwareMap.get(Servo.class, "alavancaServo");
         alavanca.setPosition(0);
 
         // INICIALIZAÇÃO DA LIMELIGHT
