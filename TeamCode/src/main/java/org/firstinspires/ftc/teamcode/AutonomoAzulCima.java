@@ -135,7 +135,7 @@ public class AutonomoAzulCima extends OpMode {
         follower.setPose(
                 new Pose(20.700, // Início de DESCERSHOOT1
                         123.000, // Início de DESCERSHOOT1
-                        Math.toRadians(-134)) // Mantendo o heading de "início"
+                        Math.toRadians(-45)) // Mantendo o heading de "início"
         );
 
         telemetry.addData("STATUS", "HARDWARE OK. SHOOTER AGUARDANDO.");
