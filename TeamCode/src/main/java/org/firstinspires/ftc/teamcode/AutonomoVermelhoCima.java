@@ -34,7 +34,7 @@ public class AutonomoVermelhoCima extends OpMode {
     // Constantes de tempo
     private static final double TEMPO_FEED_CIMA = 3.8;
     private static final double DELAY_APOS_FEED = 0.5;
-    private static final double ESPERA_SHOOT = 7.783;
+    private static final double ESPERA_SHOOT = 7.796;
 
     // Enum PathState ATUALIZADA
     public enum PathState {
@@ -54,9 +54,6 @@ public class AutonomoVermelhoCima extends OpMode {
 
     private PathState pathState;
 
-    // **********************************************
-    // CLASSE PATHS ATUALIZADA (com POSICAOFINAL)
-    // **********************************************
     public static class Paths {
         public PathChain DESCERSHOOT1;
         public PathChain AJUSTEFEEDCIMA;
@@ -68,9 +65,9 @@ public class AutonomoVermelhoCima extends OpMode {
             DESCERSHOOT1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(123.400, 123.000), new Pose(95.700, 95.300))
+                            new BezierLine(new Pose(123.400, 123.000), new Pose(90.000, 89.500))
                     )
-                    .setTangentHeadingInterpolation()
+                    .setLinearHeadingInterpolation(Math.toRadians(-134), Math.toRadians(-140))
                     .build();
 
             AJUSTEFEEDCIMA = follower
@@ -93,7 +90,7 @@ public class AutonomoVermelhoCima extends OpMode {
             VOLTASHOOT3 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(128.000, 74.600), new Pose(104.300, 103.300))
+                            new BezierLine(new Pose(128.000, 74.600), new Pose(104.300, 102.000))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -103,8 +100,8 @@ public class AutonomoVermelhoCima extends OpMode {
             // mas estou usando o que foi fornecido na sua solicitação.
             POSICAOFINAL = follower.pathBuilder()
                     .addPath(new BezierLine(
-                            new Pose(102.000, 105.600),
-                            new Pose(38.600, 33.400)
+                            new Pose(104.300, 102.000),
+                            new Pose(52.600, 20.400)
                     ))
                     .setLinearHeadingInterpolation(
                             Math.toRadians(57),
@@ -112,10 +109,6 @@ public class AutonomoVermelhoCima extends OpMode {
                     .build();
         }
     }
-    // **********************************************
-    // FIM DA CLASSE PATHS ATUALIZADA
-    // **********************************************
-
 
     @Override
     public void init() {

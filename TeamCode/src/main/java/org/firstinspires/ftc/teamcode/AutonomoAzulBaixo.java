@@ -13,8 +13,8 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@Autonomous(name = "VERMELHO BAIXO")
-public class AutonomoVermelhoBaixo extends OpMode {
+@Autonomous(name = "AZUL BAIXO")
+public class AutonomoAzulBaixo extends OpMode {
 
     // MOTORES/XERIFE
     private DcMotor baseShooter = null;
@@ -30,8 +30,8 @@ public class AutonomoVermelhoBaixo extends OpMode {
 
     // CONSTANTES BASE SHOOTER
     static final double TICKS_POR_REVOLUCAO = 560.0;
-    static final double ROTACAO_ALVO_INIT = 0.095; // POSIÇÃO SHOOT 1
-    static final double ROTACAO_ALVO_SHOOT2 = 0.99; // POSIÇÃO SHOOT 2
+    static final double ROTACAO_ALVO_INIT = -0.095; // POSIÇÃO SHOOT 1
+    static final double ROTACAO_ALVO_SHOOT2 = -0.99; // POSIÇÃO SHOOT 2
     static final double POWER_SETUP = 0.5; // FORÇA DE GIRO BASE
 
     // CONSTANTE TEMPO FEED/SHOOT
@@ -64,64 +64,70 @@ public class AutonomoVermelhoBaixo extends OpMode {
     private PathState pathState;
 
     public static class Paths {
+
         public PathChain IDAFRENTEINICIAL;
         public PathChain CAMINHOSHOOT1;
-        public PathChain IDAFEEDBAIXO; // RENOMEADO
-        public PathChain FEEDBAIXO;    // RENOMEADO
-        public PathChain BATEMEIO;     // RENOMEADO
+        public PathChain IDAFEEDBAIXO;
+        public PathChain FEEDBAIXO;
+        public PathChain BATEMEIO;
         public PathChain CAMINHOSHOOT2;
         public PathChain POSICAOFINAL;
 
         public Paths(Follower follower) {
-            IDAFRENTEINICIAL = follower.pathBuilder()
-                    .addPath(new BezierLine(
-                            new Pose(56.000, 8.000),
-                            new Pose(56.000, 30.000)
-                    ))
-                    .setTangentHeadingInterpolation()
-                    .build();
-
-            CAMINHOSHOOT1 = follower.pathBuilder()
-                    .addPath(new BezierLine(
-                            new Pose(56.000, 30.000),
-                            new Pose(93.000, 93.250)
-                    ))
-                    .setTangentHeadingInterpolation()
-                    .build();
-
-            IDAFEEDBAIXO = follower.pathBuilder() // NOVO PATH
+            IDAFRENTEINICIAL = follower
+                    .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(96.500, 96.500), new Pose(45.000, 41.500))
+                            new BezierLine(new Pose(88.000, 8.000), new Pose(88.000, 30.000))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
 
-            FEEDBAIXO = follower.pathBuilder() // NOVO PATH
+            CAMINHOSHOOT1 = follower
+                    .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(45.000, 41.500), new Pose(5.700, 41.500))
+                            new BezierLine(new Pose(88.000, 30.000), new Pose(50.000, 94.000))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
 
-            BATEMEIO = follower.pathBuilder() // NOVO PATH
+            IDAFEEDBAIXO = follower
+                    .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(5.700, 41.500), new Pose(27.368, 57.895))
+                            new BezierLine(new Pose(50.000, 94.000), new Pose(92.700, 41.500))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
+                    .setTangentHeadingInterpolation()
                     .build();
 
-            CAMINHOSHOOT2 = follower.pathBuilder()
+            FEEDBAIXO = follower
+                    .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(27.368, 57.895), new Pose(102.000, 105.600))
+                            new BezierLine(new Pose(92.700, 41.500), new Pose(135.300, 41.500))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-147), Math.toRadians(-147))
+                    .setTangentHeadingInterpolation()
                     .build();
 
-            POSICAOFINAL = follower.pathBuilder()
+            BATEMEIO = follower
+                    .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(102.000, 105.600), new Pose(35.500, 36.400))
+                            new BezierLine(new Pose(135.300, 41.500), new Pose(116.700, 57.895))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-131), Math.toRadians(-90))
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                    .build();
+
+            CAMINHOSHOOT2 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(116.700, 57.895), new Pose(42.100, 105.600))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(-33), Math.toRadians(-33))
+                    .build();
+
+            POSICAOFINAL = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(42.100, 105.600), new Pose(103.000, 33.400))
+                    )
+                    .setTangentHeadingInterpolation()
                     .build();
         }
     }
@@ -151,13 +157,21 @@ public class AutonomoVermelhoBaixo extends OpMode {
         pathTimer = new Timer();
         pathState = PathState.SETUP_SHOOTER;
 
+        // ATENÇÃO: A Pose inicial (56.000, 8.000, 90°) *não* foi atualizada
+        // para corresponder ao novo Path IDAFRENTEINICIAL que começa em (88.000, 8.000).
+        // A posição inicial deve ser ajustada para: (88.000, 8.000) com Heading apropriado.
+
+        // Ajustando a Pose inicial para corresponder ao novo path IDAFRENTEINICIAL: (88.000, 8.000)
+        // O heading do IDAFRENTEINICIAL original (do Vermelho) era 90°, então o inverso seria 270° ou -90°.
+        // Assumindo que este é o ponto de partida do AZUL BAIXO:
         follower.setPose(
-                new Pose(56.000,
+                new Pose(88.000,
                         8.000,
-                        Math.toRadians(90))
+                        Math.toRadians(90)) // 270° é geralmente o 'heading' para iniciar 'para frente' no lado Azul Baixo
         );
 
         telemetry.addData("STATUS", "HARDWARE OK. SHOOTER AGUARDANDO.");
+        telemetry.addData("POS INICIAL AJUSTADA", follower.getPose().toString());
         telemetry.update();
     }
 

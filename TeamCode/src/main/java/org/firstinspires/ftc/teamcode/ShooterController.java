@@ -42,7 +42,7 @@ public class ShooterController {
     private static final double TEMPO_TOTAL_SHOOTER_LIGADO = 7.0; // Tempo suficiente para 3 bolinhas
 
     // Constantes de hardware
-    private static final double POTENCIA_SHOOTER = 1.0;
+    private static final double POTENCIA_SHOOTER = 0.96;
     private static final double POTENCIA_FEEDER = -1.0;
     private static final double POSICAO_SERVO_ATIRAR = 0.8;
     private static final double POSICAO_SERVO_REPOUSO = 0.2;
