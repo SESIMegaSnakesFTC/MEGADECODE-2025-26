@@ -12,8 +12,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.Arrays; // Import necessário para facilitar a ordenação
 
-@TeleOp(name="TELEOPERADO VERMELHO")
-public class teleopVermelho extends LinearOpMode
+@TeleOp(name="TELEOPERADO AZUL")
+public class teleopAzul extends LinearOpMode
 {
 
     // DEFININDO MOTORES DE MOVIMENTO
@@ -128,7 +128,7 @@ public class teleopVermelho extends LinearOpMode
         // INICIALIZAÇÃO DA LIMELIGHT
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         limelight.start();
-        limelight.pipelineSwitch(0); // VERMELHO
+        limelight.pipelineSwitch(1); // AZUL
 
         // DIREÇÃO MOTORES MOVIMENTO
         leftFront.setDirection(DcMotorEx.Direction.REVERSE);

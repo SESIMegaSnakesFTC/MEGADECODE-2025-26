@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.bylazar.configurables.annotations.Configurable;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -9,30 +10,27 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 @Autonomous(name = "RUN TO POSITION", group = "FTC")
 public class testeRUNTOPOSITION extends LinearOpMode {
 
-    private DcMotor motor = null;
+    private DcMotor baseShooter = null;
 
     // Constantes do Motor
-    static final double TICKS_POR_REVOLUCAO = 28.0; // HD Hex Motor sem redução
-    static final double ROTACAO_ALVO = 0.8;         // Posição desejada (0.8 voltas)
+    // NOVO CÁLCULO: 28 ticks/rev do motor * (4:1 * 5:1) = 560 ticks/rev do eixo de saída
+    static final double TICKS_POR_REVOLUCAO = 560.0;
+    static final double ROTACAO_ALVO = -0.54;         // Posição desejada (
     static final double POWER = 0.5;                // Potência para o movimento
 
     @Override
     public void runOpMode() {
 
         // 1. Mapeamento do Motor
-        // Substitua "motor_hdhex" pelo nome configurado no Driver Station
-        motor = hardwareMap.get(DcMotor.class, "motor_hdhex");
+        baseShooter = hardwareMap.get(DcMotor.class, "baseShooter");
 
-        // 2. Configurações e Zero
-        motor.setDirection(DcMotorSimple.Direction.FORWARD);
-        motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        // ... (o restante do seu código permanece o mesmo)
 
         // **FASE 1: Começar sempre no Ponto 0**
-        // Zera o contador do encoder na posição atual
-        motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        // Prepara para usar o encoder em modo de velocidade/posição após o reset
-        motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        baseShooter.setDirection(DcMotorSimple.Direction.FORWARD);
+        baseShooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        baseShooter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        baseShooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         telemetry.addData("Status", "Pronto e Encoder Zerado");
         telemetry.update();
@@ -41,37 +39,38 @@ public class testeRUNTOPOSITION extends LinearOpMode {
 
         if (opModeIsActive()) {
 
-            // **FASE 2: Ir para a Posição 0.8**
+            // **FASE 2: Ir para a Posição 3.0 Rotações**
 
             // A. Cálculo: Ticks = Rotações * Ticks/Rev
             int posicaoAlvoTicks = (int) (ROTACAO_ALVO * TICKS_POR_REVOLUCAO);
+            // Com os novos valores: 3.0 * 560.0 = 1680 Ticks
 
             // B. Definir o Alvo
-            motor.setTargetPosition(posicaoAlvoTicks);
+            baseShooter.setTargetPosition(posicaoAlvoTicks);
 
             // C. Ativar o Modo de Controle de Posição
-            motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            baseShooter.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
             // D. Iniciar o Movimento
-            motor.setPower(POWER);
+            baseShooter.setPower(POWER);
 
             // E. Esperar o Motor Chegar à Posição
-            while (opModeIsActive() && motor.isBusy()) {
+            while (opModeIsActive() && baseShooter.isBusy()) {
                 telemetry.addData("Status", "Movendo...");
                 telemetry.addData("Alvo (Ticks)", posicaoAlvoTicks);
-                telemetry.addData("Atual (Ticks)", motor.getCurrentPosition());
+                telemetry.addData("Atual (Ticks)", baseShooter.getCurrentPosition());
                 telemetry.update();
                 idle(); // Permite que outras threads do FTC rodem
             }
 
-            // F. Parar (Opcional, mas recomendado para garantir que pare de aplicar força)
-            motor.setPower(0);
+            // F. Parar
+            baseShooter.setPower(0);
 
-            // G. Retornar ao modo padrão (opcional)
-            motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            // G. Retornar ao modo padrão
+            baseShooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-            telemetry.addData("Status", "Chegou à 0.8 Rotações.");
-            telemetry.addData("Posição Final", motor.getCurrentPosition());
+            telemetry.addData("Status", "Chegou a %s Rotações.", ROTACAO_ALVO);
+            telemetry.addData("Posição Final", baseShooter.getCurrentPosition());
             telemetry.update();
 
             // Permanece no loop até o fim do OpMode
