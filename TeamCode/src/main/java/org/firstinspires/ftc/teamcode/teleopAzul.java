@@ -29,7 +29,7 @@ public class teleopAzul extends LinearOpMode
     private Servo alavanca = null;
 
     // CONSTANTES DE CONTROLE
-    // NOVO: Array de velocidades predefinidas
+
     private final double[] VELOCIDADES_CHASSI = {0.130, 0.300, 0.500, 0.850};
     private int indiceVelocidade = VELOCIDADES_CHASSI.length - 1; // Começa na velocidade máxima (0.850)
     public boolean rbPressionadoUltimoEstado = false;
@@ -77,7 +77,6 @@ public class teleopAzul extends LinearOpMode
         waitForStart();
         resetRuntime();
 
-        // NOVO: Garantir que o array de velocidades está ordenado
         Arrays.sort(VELOCIDADES_CHASSI);
 
         while (opModeIsActive())
@@ -97,7 +96,6 @@ public class teleopAzul extends LinearOpMode
             // 4. SHOOTER E LIMELIGHT (Gamepad 2)
             limelightShooterControl();
 
-            // NOVO: Obtém a velocidade atual do array para a telemetria
             double velocidadeAtual = VELOCIDADES_CHASSI[indiceVelocidade];
 
 
@@ -159,7 +157,7 @@ public class teleopAzul extends LinearOpMode
         rightBack.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         feeder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        baseShooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER); // Forçando o motor da base a ficar no 0
+        baseShooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         baseShooter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         baseShooter.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
@@ -171,24 +169,23 @@ public class teleopAzul extends LinearOpMode
         double lateral = -gamepad1.left_stick_x; // MOVIMENTO LATERAL
         double giro = -gamepad1.right_stick_x; // MOVIMENTO DE GIRO
 
-        // Obtém a velocidade atual do array
         double velocidade = VELOCIDADES_CHASSI[indiceVelocidade];
 
         // CONTROLE LB E RB PARA VELOCIDADE
         boolean rbPressionado = gamepad1.right_bumper;
         boolean lbPressionado = gamepad1.left_bumper;
 
-        // RB - DIMINUI (Se não for a velocidade mínima, diminui o índice)
+        // RB - DIMINUI
         if (rbPressionado && !rbPressionadoUltimoEstado){
-            if (indiceVelocidade > 0) { // O índice 0 é a velocidade mínima
+            if (indiceVelocidade > 0) {
                 indiceVelocidade--;
             }
         }
         rbPressionadoUltimoEstado = rbPressionado;
 
-        // LB - AUMENTA (Se não for a velocidade máxima, aumenta o índice)
+        // LB - AUMENTA
         if (lbPressionado && !lbPressionadoUltimoEstado) {
-            if (indiceVelocidade < VELOCIDADES_CHASSI.length - 1){ // O último índice é a velocidade máxima
+            if (indiceVelocidade < VELOCIDADES_CHASSI.length - 1){
                 indiceVelocidade++;
             }
         }
@@ -204,7 +201,7 @@ public class teleopAzul extends LinearOpMode
         max = Math.max(max, Math.abs(backLeftPower));
         max = Math.max(max, Math.abs(backRightPower));
 
-        if (max > 1.0) {
+        if (max > 0.850) {
             frontLeftPower  = frontLeftPower / max;
             frontRightPower = frontRightPower / max;
             backLeftPower   = backLeftPower / max;
