@@ -27,6 +27,9 @@ public class teleopVermelho extends LinearOpMode {
     private DcMotorEx baseShooter = null;
     private DcMotor shooter = null;
     private Servo alavanca = null;
+    private ElapsedTime tempoAlavanca = new ElapsedTime();
+    private boolean alavancaAtiva = false;
+
 
     // ===================== CONTROLE DE VELOCIDADE =====================
     private final double[] VELOCIDADES_CHASSI = {0.130, 0.300, 0.500, 0.850};
@@ -301,15 +304,21 @@ public class teleopVermelho extends LinearOpMode {
             shooter.setPower(velShooter[indiceVel]);
             statusShooter = "SHOOTER: LIGADO | VELOCIDADE: " + velShooter[indiceVel];
 
-            if (gamepad2.dpad_up) {
+            if (gamepad2.dpad_up && !alavancaAtiva) {
                 alavanca.setPosition(0.56);
+                tempoAlavanca.reset();
+                alavancaAtiva = true;
             }
-            if (gamepad2.dpad_down) {
+
+            if (alavancaAtiva && tempoAlavanca.seconds() >= 1.5) {
                 alavanca.setPosition(0);
+                alavancaAtiva = false;
             }
+
         } else {
             alavanca.setPosition(0);
             shooter.setPower(0);
+            alavancaAtiva = false;
         }
 
         telemetry.addLine(statusShooter);

@@ -67,18 +67,18 @@ public class AutonomoVermelhoCima extends OpMode {
 
         // CRIADOR DE CAMINHOS
         public Paths(Follower follower) {
-            DESCERSHOOT1 = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(123.400, 123.000), new Pose(90.000, 89.500))
+            DESCERSHOOT1 = follower.pathBuilder()
+                    .addPath(new BezierLine(
+                            new Pose(123.400, 123.000),
+                            new Pose(90.000, 89.500))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(-134), Math.toRadians(-140))
                     .build();
 
-            AJUSTEFEEDCIMA = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(95.700, 95.300), new Pose(93.000, 74.600))
+            AJUSTEFEEDCIMA = follower.pathBuilder()
+                    .addPath(new BezierLine(
+                            new Pose(95.700, 95.300),
+                            new Pose(93.000, 74.600))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(-134), Math.toRadians(0))
                     .build();
