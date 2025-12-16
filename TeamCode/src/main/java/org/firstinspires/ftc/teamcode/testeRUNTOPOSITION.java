@@ -1,11 +1,13 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.bylazar.configurables.annotations.Configurable;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
+@Disabled
 // Mude para @Autonomous se for usar em modo autônomo
 @Autonomous(name = "RUN TO POSITION", group = "FTC")
 public class testeRUNTOPOSITION extends LinearOpMode {

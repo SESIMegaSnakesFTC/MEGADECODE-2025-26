@@ -15,45 +15,47 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Autonomous(name = "AZUL CIMA")
 public class AutonomoAzulCima extends OpMode {
-    // Hardware
+
+    // MOTORES
     private DcMotor baseShooter = null;
     private DcMotorEx feeder;
     private Follower follower;
 
-    // Controladores
+    // CONTROLADORES
     private Paths paths;
     private Timer pathTimer;
     private ShooterController shooterController;
 
-    // Constantes do Motor
+    // CONSTANTES
     static final double TICKS_POR_REVOLUCAO = 560.0;
     static final double ROTACAO_ALVO_INIT = -1.135;
     static final double ROTACAO_ALVO_SHOOT2 = -0.56;
     static final double POWER_SETUP = 0.5;
 
-    // Constantes de tempo
+    // TEMPORIZAÇÃO
     private static final double TEMPO_FEED_CIMA = 3.8;
     private static final double DELAY_APOS_FEED = 0.5;
     private static final double ESPERA_SHOOT = 7.796;
 
-    // Enum PathState ATUALIZADA
+    // MÁQUINA DE ESTADOS
     public enum PathState {
-        SETUP_SHOOTER,          // Setup inicial (ROTACAO_ALVO_INIT)
+        SETUP_SHOOTER,
         DESCERSHOOT1,
-        ESPERA_SHOOT1,           // Primeiro Tiro
+        ESPERA_SHOOT1,
         AJUSTEFEEDCIMA,
         FEEDCIMA_INICIAR,
         FEEDCIMA_EM_ANDAMENTO,
         FEEDCIMA_FINALIZAR,
-        SETUP_SHOOTER2,         // Ajusta para ROTACAO_ALVO_SHOOT2
+        SETUP_SHOOTER2,
         VOLTASHOOT3,
-        ESPERA_SHOOT3,           // Segundo Tiro
-        POSICAOFINAL,           // NOVO: Movimento para a posição final/estacionamento
+        ESPERA_SHOOT3,
+        POSICAOFINAL,
         DONE
     }
 
     private PathState pathState;
 
+    // FUNÇÃO CRIADORA DE CAMINHOS
     public static class Paths {
 
         public PathChain DESCERSHOOT1;
@@ -107,35 +109,33 @@ public class AutonomoAzulCima extends OpMode {
 
     @Override
     public void init() {
-        // ** Mapeamento e Configuração do baseShooter **
+        // CONFIGURAÇÃO BASE SHOOTER
         baseShooter = hardwareMap.get(DcMotor.class, "baseShooter");
 
         baseShooter.setDirection(DcMotorSimple.Direction.FORWARD);
         baseShooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         baseShooter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        // Inicializa feeder
+        // CONFIGURAÇÃO FEEDER
         feeder = hardwareMap.get(DcMotorEx.class, "feeder");
         feeder.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         feeder.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
-        // Inicializa shooter controller
+        // INICIALIZA CLASSE LÓGICA SHOOTER
         shooterController = new ShooterController();
         shooterController.init(hardwareMap, feeder);
 
-        // Inicializa follower e paths
+        // INICIALIZA PEDRO PATHING
         follower = Constants.createFollower(hardwareMap);
         paths = new Paths(follower);
 
         pathTimer = new Timer();
         pathState = PathState.SETUP_SHOOTER;
 
-        // CORREÇÃO: Posição inicial ajustada para o começo do primeiro path: (20.700, 123.000)
-        // O Heading é um palpite, assumindo que -134 graus era o heading de chegada no ponto anterior.
         follower.setPose(
-                new Pose(20.700, // Início de DESCERSHOOT1
-                        123.000, // Início de DESCERSHOOT1
-                        Math.toRadians(-45)) // Mantendo o heading de "início"
+                new Pose(20.700,
+                        123.000,
+                        Math.toRadians(-45))
         );
 
         telemetry.addData("STATUS", "HARDWARE OK. SHOOTER AGUARDANDO.");
@@ -216,7 +216,6 @@ public class AutonomoAzulCima extends OpMode {
                 break;
 
             case FEEDCIMA_EM_ANDAMENTO:
-                // AGORA SÓ AVANÇA APÓS O TEMPO DE FEED EXPIRAR
                 if (pathTimer.getElapsedTimeSeconds() >= TEMPO_FEED_CIMA) {
                     if (follower.isBusy()) {
                         follower.breakFollowing();
@@ -233,7 +232,7 @@ public class AutonomoAzulCima extends OpMode {
                 break;
 
             case SETUP_SHOOTER2:
-                // Move para ROTACAO_ALVO_SHOOT2
+                // MOVE A BASE SHOOTER
                 if (baseShooter.getMode() != DcMotor.RunMode.RUN_TO_POSITION) {
                     int posicaoAlvoTicks = (int) (ROTACAO_ALVO_SHOOT2 * TICKS_POR_REVOLUCAO);
                     baseShooter.setTargetPosition(posicaoAlvoTicks);
@@ -250,7 +249,7 @@ public class AutonomoAzulCima extends OpMode {
 
             case VOLTASHOOT3:
                 if (!follower.isBusy()) {
-                    // Liga shooter para último ciclo (após ajuste da base)
+                    // LIGA SHOOTER
                     shooterController.iniciarCiclo3Bolinhas();
 
                     follower.setMaxPower(1);
@@ -260,25 +259,23 @@ public class AutonomoAzulCima extends OpMode {
                 break;
 
             case ESPERA_SHOOT3:
-                // Lógica do segundo tiro
                 shooterController.update();
 
                 if (pathTimer.getElapsedTimeSeconds() < 2.0) {
-                    // Aguarda shooter acelerar
                 }
                 else if (shooterController.isReadyToShoot()) {
                     shooterController.comecarATirar();
                 }
                 else if (shooterController.isIdle()) {
-                    setPathState(PathState.POSICAOFINAL); // Transiciona para o novo caminho final
+                    setPathState(PathState.POSICAOFINAL);
                 }
                 else if (pathTimer.getElapsedTimeSeconds() >= ESPERA_SHOOT) {
                     shooterController.emergencyStop();
-                    setPathState(PathState.POSICAOFINAL); // Transiciona para o novo caminho final
+                    setPathState(PathState.POSICAOFINAL);
                 }
                 break;
 
-            case POSICAOFINAL: // NOVO ESTADO
+            case POSICAOFINAL:
                 if (!follower.isBusy()) {
                     follower.setMaxPower(1.0);
                     follower.followPath(paths.POSICAOFINAL, true);
@@ -287,7 +284,7 @@ public class AutonomoAzulCima extends OpMode {
                 break;
 
             case DONE:
-                // Garante que tudo está desligado
+                // TUDO DESLIGADO
                 feeder.setPower(0);
                 shooterController.emergencyStop();
                 break;
@@ -296,13 +293,13 @@ public class AutonomoAzulCima extends OpMode {
 
     @Override
     public void loop() {
-        // Atualiza follower (movimento)
+        // ATUALIZA SEGUIDOR
         follower.update();
 
-        // Atualiza máquina de estados
+        // ATUALIZA MÁQUINA DE ESTADOS
         statePathUpdate();
 
-        // Telemetria detalhada
+        // MENSAGENS DE DEPURAÇÃO
         telemetry.addData("Estado", pathState);
         telemetry.addData("Estado Shoot", shooterController.getEstadoAtual());
         telemetry.addData("Bolinhas Atiradas", shooterController.getBolinhasAtiradas());
@@ -313,7 +310,7 @@ public class AutonomoAzulCima extends OpMode {
         telemetry.addData("Tempo Estado", pathTimer.getElapsedTimeSeconds());
         telemetry.addData("Busy", follower.isBusy());
 
-        // Telemetria do Shooter (ADICIONADA)
+        // DEPURAÇÃO
         if (pathState == PathState.SETUP_SHOOTER) {
             telemetry.addData("Setup Shooter 1", "Movendo para %s Rots", ROTACAO_ALVO_INIT);
             telemetry.addData("Shooter Pos Atual", baseShooter.getCurrentPosition());

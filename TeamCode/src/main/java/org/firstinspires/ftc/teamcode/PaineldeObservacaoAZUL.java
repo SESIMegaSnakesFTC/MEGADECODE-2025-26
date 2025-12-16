@@ -2,8 +2,11 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLStatus;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import java.util.Locale;
+@Disabled
 
 public class PaineldeObservacaoAZUL {
     public static void atualizarTelemetriaReconhecido (Telemetry telemetry, LLStatus statusLimelight, LLResult resultadoLimeLight, double distancia){

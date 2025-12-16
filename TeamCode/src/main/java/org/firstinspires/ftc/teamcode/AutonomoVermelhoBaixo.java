@@ -47,12 +47,11 @@ public class AutonomoVermelhoBaixo extends OpMode {
         CAMINHOSHOOT1,
         ESPERA_SHOOT1,
 
-        // ESTADOS RENOMEADOS PARA BAIXO
-        IDAFEEDBAIXO,           // NOVO: Vai para a linha de anéis de baixo
+        IDAFEEDBAIXO,
         FEEDBAIXO_INICIAR,
         FEEDBAIXO_EM_ANDAMENTO,
         FEEDBAIXO_FINALIZAR,
-        BATEMEIO,               // NOVO: Ajuste de volta
+        BATEMEIO,
 
         SETUP_SHOOTER2,
         CAMINHOSHOOT2,
@@ -63,12 +62,13 @@ public class AutonomoVermelhoBaixo extends OpMode {
 
     private PathState pathState;
 
+    // FUNÇÃO CRIADORA DE CAMINHOS
     public static class Paths {
         public PathChain IDAFRENTEINICIAL;
         public PathChain CAMINHOSHOOT1;
-        public PathChain IDAFEEDBAIXO; // RENOMEADO
-        public PathChain FEEDBAIXO;    // RENOMEADO
-        public PathChain BATEMEIO;     // RENOMEADO
+        public PathChain IDAFEEDBAIXO;
+        public PathChain FEEDBAIXO;
+        public PathChain BATEMEIO;
         public PathChain CAMINHOSHOOT2;
         public PathChain POSICAOFINAL;
 
@@ -222,7 +222,7 @@ public class AutonomoVermelhoBaixo extends OpMode {
                 }
                 break;
 
-            case IDAFEEDBAIXO: // NOVO ESTADO
+            case IDAFEEDBAIXO:
                 if (!follower.isBusy()) {
                     follower.setMaxPower(1.0);
                     follower.followPath(paths.IDAFEEDBAIXO, true);
@@ -230,41 +230,41 @@ public class AutonomoVermelhoBaixo extends OpMode {
                 }
                 break;
 
-            case FEEDBAIXO_INICIAR: // NOVO ESTADO
+            case FEEDBAIXO_INICIAR:
                 if (!follower.isBusy()) {
                     feeder.setPower(-1);
                     follower.setMaxPower(0.30);
-                    follower.followPath(paths.FEEDBAIXO, true); // NOVO PATH
-                    setPathState(PathState.FEEDBAIXO_EM_ANDAMENTO); // NOVO ESTADO
+                    follower.followPath(paths.FEEDBAIXO, true);
+                    setPathState(PathState.FEEDBAIXO_EM_ANDAMENTO);
                 }
                 break;
 
-            case FEEDBAIXO_EM_ANDAMENTO: // NOVO ESTADO
+            case FEEDBAIXO_EM_ANDAMENTO:
                 if (pathTimer.getElapsedTimeSeconds() >= TEMPO_FEED_BAIXO || !follower.isBusy()) {
                     if (follower.isBusy()) {
                         follower.breakFollowing();
                     }
-                    setPathState(PathState.FEEDBAIXO_FINALIZAR); // NOVO ESTADO
+                    setPathState(PathState.FEEDBAIXO_FINALIZAR);
                 }
                 break;
 
-            case FEEDBAIXO_FINALIZAR: // NOVO ESTADO
+            case FEEDBAIXO_FINALIZAR:
                 if (pathTimer.getElapsedTimeSeconds() >= DELAY_APOS_FEED) {
                     feeder.setPower(0);
-                    setPathState(PathState.BATEMEIO); // NOVO ESTADO
+                    setPathState(PathState.BATEMEIO);
                 }
                 break;
 
-            case BATEMEIO: // NOVO ESTADO
+            case BATEMEIO:
                 if (!follower.isBusy()) {
                     follower.setMaxPower(0.7);
-                    follower.followPath(paths.BATEMEIO, true); // NOVO PATH
+                    follower.followPath(paths.BATEMEIO, true);
                     setPathState(PathState.SETUP_SHOOTER2);
                 }
                 break;
 
             case SETUP_SHOOTER2:
-                // Move para ROTACAO_ALVO_SHOOT2 (0.99)
+                // MOVE BASE SHOOTER
                 if (baseShooter.getMode() != DcMotor.RunMode.RUN_TO_POSITION) {
                     int posicaoAlvoTicks = (int) (ROTACAO_ALVO_SHOOT2 * TICKS_POR_REVOLUCAO);
                     baseShooter.setTargetPosition(posicaoAlvoTicks);
@@ -322,16 +322,16 @@ public class AutonomoVermelhoBaixo extends OpMode {
 
     @Override
     public void loop() {
-        // Atualiza follower (movimento)
+        // ATUALIZA SEGUIDOR
         follower.update();
 
-        // CHAMADA CRÍTICA: Atualiza o controlador de shoot em CADA LOOP
+        // CHAMADA LÓGICA SHOOTER
         shooterController.update();
 
-        // Atualiza máquina de estados
+        // ATUALIZA MÁQUINA DE ESTADOS
         statePathUpdate();
 
-        // Telemetria detalhada
+        // MENSAGENS DE DEPURAÇÃO
         telemetry.addData("Estado", pathState);
         telemetry.addData("Estado Shoot", shooterController.getEstadoAtual());
 

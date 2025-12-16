@@ -35,7 +35,7 @@ public class AutonomoAzulBaixo extends OpMode {
     static final double POWER_SETUP = 0.5; // FORÇA DE GIRO BASE
 
     // CONSTANTE TEMPO FEED/SHOOT
-    private static final double TEMPO_FEED_BAIXO = 3.98; // RENOMEADO para refletir a nova coleta
+    private static final double TEMPO_FEED_BAIXO = 3.98;
     private static final double DELAY_APOS_FEED = 0.5;
     private static final double ESPERA_SHOOT = 8.0;
 
@@ -43,16 +43,15 @@ public class AutonomoAzulBaixo extends OpMode {
 
         // AJUSTE BASE
         SETUP_SHOOTER,
-        IDAFRENTEINICIAL,       // LIGA O SHOOTER
+        IDAFRENTEINICIAL,  // LIGA O SHOOTER
         CAMINHOSHOOT1,
         ESPERA_SHOOT1,
 
-        // ESTADOS RENOMEADOS PARA BAIXO
-        IDAFEEDBAIXO,           // NOVO: Vai para a linha de anéis de baixo
+        IDAFEEDBAIXO,
         FEEDBAIXO_INICIAR,
         FEEDBAIXO_EM_ANDAMENTO,
         FEEDBAIXO_FINALIZAR,
-        BATEMEIO,               // NOVO: Ajuste de volta
+        BATEMEIO,
 
         SETUP_SHOOTER2,
         CAMINHOSHOOT2,
@@ -63,6 +62,7 @@ public class AutonomoAzulBaixo extends OpMode {
 
     private PathState pathState;
 
+    // FUNÇÃO CRIADORA DE CAMINHOS
     public static class Paths {
 
         public PathChain IDAFRENTEINICIAL;
@@ -74,16 +74,15 @@ public class AutonomoAzulBaixo extends OpMode {
         public PathChain POSICAOFINAL;
 
         public Paths(Follower follower) {
-            IDAFRENTEINICIAL = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(88.000, 8.000), new Pose(88.000, 30.000))
+            IDAFRENTEINICIAL = follower.pathBuilder()
+                    .addPath(new BezierLine(
+                            new Pose(88.000, 8.000),
+                            new Pose(88.000, 30.000))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
 
-            CAMINHOSHOOT1 = follower
-                    .pathBuilder()
+            CAMINHOSHOOT1 = follower.pathBuilder()
                     .addPath(
                             new BezierLine(new Pose(88.000, 30.000), new Pose(50.000, 94.000))
                     )
@@ -157,17 +156,10 @@ public class AutonomoAzulBaixo extends OpMode {
         pathTimer = new Timer();
         pathState = PathState.SETUP_SHOOTER;
 
-        // ATENÇÃO: A Pose inicial (56.000, 8.000, 90°) *não* foi atualizada
-        // para corresponder ao novo Path IDAFRENTEINICIAL que começa em (88.000, 8.000).
-        // A posição inicial deve ser ajustada para: (88.000, 8.000) com Heading apropriado.
-
-        // Ajustando a Pose inicial para corresponder ao novo path IDAFRENTEINICIAL: (88.000, 8.000)
-        // O heading do IDAFRENTEINICIAL original (do Vermelho) era 90°, então o inverso seria 270° ou -90°.
-        // Assumindo que este é o ponto de partida do AZUL BAIXO:
         follower.setPose(
                 new Pose(88.000,
                         8.000,
-                        Math.toRadians(90)) // 270° é geralmente o 'heading' para iniciar 'para frente' no lado Azul Baixo
+                        Math.toRadians(90))
         );
 
         telemetry.addData("STATUS", "HARDWARE OK. SHOOTER AGUARDANDO.");
@@ -185,6 +177,7 @@ public class AutonomoAzulBaixo extends OpMode {
         pathTimer.resetTimer();
     }
 
+    // MÁQUINA DE ESTADOS
     private void statePathUpdate() {
         switch (pathState) {
 
@@ -228,19 +221,19 @@ public class AutonomoAzulBaixo extends OpMode {
                     telemetry.addLine("Atirando bolinhas...");
                 }
                 else if (shooterController.isIdle()) {
-                    setPathState(PathState.IDAFEEDBAIXO); // NOVO ESTADO
+                    setPathState(PathState.IDAFEEDBAIXO);
                 }
                 else if (pathTimer.getElapsedTimeSeconds() >= ESPERA_SHOOT) {
                     shooterController.emergencyStop();
-                    setPathState(PathState.IDAFEEDBAIXO); // NOVO ESTADO
+                    setPathState(PathState.IDAFEEDBAIXO);
                 }
                 break;
 
-            case IDAFEEDBAIXO: // NOVO ESTADO
+            case IDAFEEDBAIXO:
                 if (!follower.isBusy()) {
                     follower.setMaxPower(1.0);
                     follower.followPath(paths.IDAFEEDBAIXO, true);
-                    setPathState(PathState.FEEDBAIXO_INICIAR); // NOVO ESTADO
+                    setPathState(PathState.FEEDBAIXO_INICIAR);
                 }
                 break;
 
@@ -248,37 +241,37 @@ public class AutonomoAzulBaixo extends OpMode {
                 if (!follower.isBusy()) {
                     feeder.setPower(-1);
                     follower.setMaxPower(0.30);
-                    follower.followPath(paths.FEEDBAIXO, true); // NOVO PATH
-                    setPathState(PathState.FEEDBAIXO_EM_ANDAMENTO); // NOVO ESTADO
+                    follower.followPath(paths.FEEDBAIXO, true);
+                    setPathState(PathState.FEEDBAIXO_EM_ANDAMENTO);
                 }
                 break;
 
-            case FEEDBAIXO_EM_ANDAMENTO: // NOVO ESTADO
+            case FEEDBAIXO_EM_ANDAMENTO:
                 if (pathTimer.getElapsedTimeSeconds() >= TEMPO_FEED_BAIXO || !follower.isBusy()) {
                     if (follower.isBusy()) {
                         follower.breakFollowing();
                     }
-                    setPathState(PathState.FEEDBAIXO_FINALIZAR); // NOVO ESTADO
+                    setPathState(PathState.FEEDBAIXO_FINALIZAR);
                 }
                 break;
 
-            case FEEDBAIXO_FINALIZAR: // NOVO ESTADO
+            case FEEDBAIXO_FINALIZAR:
                 if (pathTimer.getElapsedTimeSeconds() >= DELAY_APOS_FEED) {
                     feeder.setPower(0);
-                    setPathState(PathState.BATEMEIO); // NOVO ESTADO
+                    setPathState(PathState.BATEMEIO);
                 }
                 break;
 
-            case BATEMEIO: // NOVO ESTADO
+            case BATEMEIO:
                 if (!follower.isBusy()) {
                     follower.setMaxPower(0.7);
-                    follower.followPath(paths.BATEMEIO, true); // NOVO PATH
+                    follower.followPath(paths.BATEMEIO, true);
                     setPathState(PathState.SETUP_SHOOTER2);
                 }
                 break;
 
             case SETUP_SHOOTER2:
-                // Move para ROTACAO_ALVO_SHOOT2 (0.99)
+                // MOVE A BASE DO SHOOTER
                 if (baseShooter.getMode() != DcMotor.RunMode.RUN_TO_POSITION) {
                     int posicaoAlvoTicks = (int) (ROTACAO_ALVO_SHOOT2 * TICKS_POR_REVOLUCAO);
                     baseShooter.setTargetPosition(posicaoAlvoTicks);
@@ -336,16 +329,16 @@ public class AutonomoAzulBaixo extends OpMode {
 
     @Override
     public void loop() {
-        // Atualiza follower (movimento)
+        // ATUALIZA O SEGUIDOR
         follower.update();
 
-        // CHAMADA CRÍTICA: Atualiza o controlador de shoot em CADA LOOP
+        // CHAMA E ATUALIZA CLASSE DE CONTROLE INDIVIDUAL DO SHOOTER
         shooterController.update();
 
-        // Atualiza máquina de estados
+        // ATUALIZA MÁQUINA DE ESTADO
         statePathUpdate();
 
-        // Telemetria detalhada
+        // MENSAGENS DE DEPURAÇÃO
         telemetry.addData("Estado", pathState);
         telemetry.addData("Estado Shoot", shooterController.getEstadoAtual());
 

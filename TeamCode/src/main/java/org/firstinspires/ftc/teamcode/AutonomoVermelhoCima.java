@@ -15,52 +15,57 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Autonomous(name = "VERMELHO CIMA")
 public class AutonomoVermelhoCima extends OpMode {
-    // Hardware
+
+    // CONFIGURAÇÃO XERIFE
     private DcMotor baseShooter = null;
     private DcMotorEx feeder;
     private Follower follower;
 
-    // Controladores
+    // CONTROLADORES
     private Paths paths;
     private Timer pathTimer;
     private ShooterController shooterController;
 
-    // Constantes do Motor
+    // CONSTANTE MOTOR
     static final double TICKS_POR_REVOLUCAO = 560.0;
     static final double ROTACAO_ALVO_INIT = 1.135;
     static final double ROTACAO_ALVO_SHOOT2 = 0.56;
     static final double POWER_SETUP = 0.5;
 
-    // Constantes de tempo
+    // TEMPORIZAÇÃO
     private static final double TEMPO_FEED_CIMA = 3.8;
     private static final double DELAY_APOS_FEED = 0.5;
     private static final double ESPERA_SHOOT = 7.796;
 
-    // Enum PathState ATUALIZADA
+    // MÁQUINA DE ESTADOS
     public enum PathState {
-        SETUP_SHOOTER,          // Setup inicial (ROTACAO_ALVO_INIT)
+        SETUP_SHOOTER,
         DESCERSHOOT1,
-        ESPERA_SHOOT1,           // Primeiro Tiro
+        ESPERA_SHOOT1,
         AJUSTEFEEDCIMA,
         FEEDCIMA_INICIAR,
         FEEDCIMA_EM_ANDAMENTO,
         FEEDCIMA_FINALIZAR,
-        SETUP_SHOOTER2,         // Ajusta para ROTACAO_ALVO_SHOOT2
+        SETUP_SHOOTER2,
         VOLTASHOOT3,
-        ESPERA_SHOOT3,           // Segundo Tiro
-        POSICAOFINAL,           // NOVO: Movimento para a posição final/estacionamento
+        ESPERA_SHOOT3,
+        POSICAOFINAL,
         DONE
     }
 
+
     private PathState pathState;
 
+    // FUNÇÃO CRIADORA DE CAMINHOS
     public static class Paths {
         public PathChain DESCERSHOOT1;
         public PathChain AJUSTEFEEDCIMA;
         public PathChain FEEDCIMA;
         public PathChain VOLTASHOOT3;
-        public PathChain POSICAOFINAL; // NOVO CAMINHO
+        public PathChain POSICAOFINAL;
 
+
+        // CRIADOR DE CAMINHOS
         public Paths(Follower follower) {
             DESCERSHOOT1 = follower
                     .pathBuilder()
@@ -78,7 +83,6 @@ public class AutonomoVermelhoCima extends OpMode {
                     .setLinearHeadingInterpolation(Math.toRadians(-134), Math.toRadians(0))
                     .build();
 
-            // Aumentado o X final no passo anterior, usando 128.000
             FEEDCIMA = follower
                     .pathBuilder()
                     .addPath(
@@ -95,9 +99,6 @@ public class AutonomoVermelhoCima extends OpMode {
                     .setTangentHeadingInterpolation()
                     .build();
 
-            // NOVO CAMINHO: POSICAOFINAL
-            // Nota: O ponto inicial (102.000, 105.600) não corresponde ao final de VOLTASHOOT3 (104.300, 103.300),
-            // mas estou usando o que foi fornecido na sua solicitação.
             POSICAOFINAL = follower.pathBuilder()
                     .addPath(new BezierLine(
                             new Pose(104.300, 102.000),
@@ -112,23 +113,23 @@ public class AutonomoVermelhoCima extends OpMode {
 
     @Override
     public void init() {
-        // ** Mapeamento e Configuração do baseShooter **
+        // CONFIGURAÇÃO MOTORES
         baseShooter = hardwareMap.get(DcMotor.class, "baseShooter");
 
         baseShooter.setDirection(DcMotorSimple.Direction.FORWARD);
         baseShooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         baseShooter.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        // Inicializa feeder
+        // CONFIGURAÇÃO FEEDER
         feeder = hardwareMap.get(DcMotorEx.class, "feeder");
         feeder.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
         feeder.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
 
-        // Inicializa shooter controller
+        // INICIA LÓGICA SHOOTER
         shooterController = new ShooterController();
         shooterController.init(hardwareMap, feeder);
 
-        // Inicializa follower e paths
+        // INICIA SEGUIDOR DE CAMINHOS
         follower = Constants.createFollower(hardwareMap);
         paths = new Paths(follower);
 
@@ -215,7 +216,6 @@ public class AutonomoVermelhoCima extends OpMode {
                 break;
 
             case FEEDCIMA_EM_ANDAMENTO:
-                // AGORA SÓ AVANÇA APÓS O TEMPO DE FEED EXPIRAR
                 if (pathTimer.getElapsedTimeSeconds() >= TEMPO_FEED_CIMA) {
                     if (follower.isBusy()) {
                         follower.breakFollowing();
@@ -232,7 +232,7 @@ public class AutonomoVermelhoCima extends OpMode {
                 break;
 
             case SETUP_SHOOTER2:
-                // Move para ROTACAO_ALVO_SHOOT2
+                // GIRA A BASE SHOOTER
                 if (baseShooter.getMode() != DcMotor.RunMode.RUN_TO_POSITION) {
                     int posicaoAlvoTicks = (int) (ROTACAO_ALVO_SHOOT2 * TICKS_POR_REVOLUCAO);
                     baseShooter.setTargetPosition(posicaoAlvoTicks);
@@ -249,7 +249,6 @@ public class AutonomoVermelhoCima extends OpMode {
 
             case VOLTASHOOT3:
                 if (!follower.isBusy()) {
-                    // Liga shooter para último ciclo (após ajuste da base)
                     shooterController.iniciarCiclo3Bolinhas();
 
                     follower.setMaxPower(1);
@@ -259,25 +258,24 @@ public class AutonomoVermelhoCima extends OpMode {
                 break;
 
             case ESPERA_SHOOT3:
-                // Lógica do segundo tiro
                 shooterController.update();
 
                 if (pathTimer.getElapsedTimeSeconds() < 2.0) {
-                    // Aguarda shooter acelerar
+
                 }
                 else if (shooterController.isReadyToShoot()) {
                     shooterController.comecarATirar();
                 }
                 else if (shooterController.isIdle()) {
-                    setPathState(PathState.POSICAOFINAL); // Transiciona para o novo caminho final
+                    setPathState(PathState.POSICAOFINAL);
                 }
                 else if (pathTimer.getElapsedTimeSeconds() >= ESPERA_SHOOT) {
                     shooterController.emergencyStop();
-                    setPathState(PathState.POSICAOFINAL); // Transiciona para o novo caminho final
+                    setPathState(PathState.POSICAOFINAL);
                 }
                 break;
 
-            case POSICAOFINAL: // NOVO ESTADO
+            case POSICAOFINAL:
                 if (!follower.isBusy()) {
                     follower.setMaxPower(1.0);
                     follower.followPath(paths.POSICAOFINAL, true);
@@ -286,7 +284,6 @@ public class AutonomoVermelhoCima extends OpMode {
                 break;
 
             case DONE:
-                // Garante que tudo está desligado
                 feeder.setPower(0);
                 shooterController.emergencyStop();
                 break;
@@ -295,13 +292,13 @@ public class AutonomoVermelhoCima extends OpMode {
 
     @Override
     public void loop() {
-        // Atualiza follower (movimento)
+        // ATUALIZA SEGUIDOR
         follower.update();
 
-        // Atualiza máquina de estados
+        // ATUALIZA MÁQUINA DE ESTADOS
         statePathUpdate();
 
-        // Telemetria detalhada
+        // MENSAGENS DE DEPURAÇÃO
         telemetry.addData("Estado", pathState);
         telemetry.addData("Estado Shoot", shooterController.getEstadoAtual());
         telemetry.addData("Bolinhas Atiradas", shooterController.getBolinhasAtiradas());
@@ -312,7 +309,7 @@ public class AutonomoVermelhoCima extends OpMode {
         telemetry.addData("Tempo Estado", pathTimer.getElapsedTimeSeconds());
         telemetry.addData("Busy", follower.isBusy());
 
-        // Telemetria do Shooter (ADICIONADA)
+        // DEPURAÇÃO
         if (pathState == PathState.SETUP_SHOOTER) {
             telemetry.addData("Setup Shooter 1", "Movendo para %s Rots", ROTACAO_ALVO_INIT);
             telemetry.addData("Shooter Pos Atual", baseShooter.getCurrentPosition());

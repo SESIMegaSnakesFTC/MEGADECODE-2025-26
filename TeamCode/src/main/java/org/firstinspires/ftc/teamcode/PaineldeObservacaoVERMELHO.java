@@ -3,10 +3,13 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLStatus;
 import com.pedropathing.follower.Follower;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.Locale;
 
+@Disabled
 public class PaineldeObservacaoVERMELHO {
 
     public static void atualizarTelemetriaReconhecido(
