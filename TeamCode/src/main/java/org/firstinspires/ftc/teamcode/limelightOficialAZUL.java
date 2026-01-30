@@ -20,7 +20,7 @@ public class limelightOficialAZUL extends OpMode {
     private boolean modoAutomatico = false;
     private boolean lastTriggerPressed = false;
 
-    private static final double KP = 0.02;
+    private static final double KP = 0.03;
     private static final double SEARCH_SPEED = 0.15;
 
     @Override

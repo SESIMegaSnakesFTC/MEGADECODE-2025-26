@@ -19,7 +19,7 @@ public class PaineldeObservacaoAZUL {
         telemetry.addData("Pipeline:", "Index: %d | Tipo: %s", statusLimelight.getPipelineIndex(), statusLimelight.getPipelineType().toString());
         telemetry.addLine();
         telemetry.addLine("STATUS: Limelight");
-        telemetry.addData("Distância da Tag", "%.1f cm", distancia);
+        telemetry.addData("Distância do Alvo", "%.1f cm", distancia);
         telemetry.addData("Tx:", "%f°", resultadoLimeLight.getTx());
         telemetry.addData("Ty:", "%f°", resultadoLimeLight.getTy());
         telemetry.addData("Ta:", "%fcm²", resultadoLimeLight.getTa());

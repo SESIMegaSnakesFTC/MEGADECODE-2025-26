@@ -33,7 +33,7 @@ public class limelightOficialVERMELHO extends OpMode {
     private boolean lastA = false;
 
     // --- controle ---
-    private static final double KP = 0.02;
+    private static final double KP = 0.03;
     private static final double SEARCH_SPEED = 0.3;
     private static final double MANUAL_LIMIT = 0.6;
 

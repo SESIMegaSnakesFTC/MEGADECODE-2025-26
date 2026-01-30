@@ -80,6 +80,7 @@ public class PaineldeObservacaoVERMELHO {
         telemetry.addData("Tx:", "%f°", resultadoLimeLight.getTx());
         telemetry.addData("Ty:", "%f°", resultadoLimeLight.getTy());
         telemetry.addData("Ta:", "%fcm²", resultadoLimeLight.getTa());
+        telemetry.addData("Distância do Alvo", "%.1f cm");
 
         telemetry.addLine();
         telemetry.addLine("CONFIGURAÇÃO: Geral");
